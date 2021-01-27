@@ -122,7 +122,9 @@ function initializeLineChart(csv) {
                 var population = parseFloat(row.population);
                 return {
                     t: Date.parse(row.real_date),
-                    y: (vaccinated / population) * 100
+                    y: (vaccinated / population) * 100,
+                    vaccinated: vaccinated,
+                    population: population,
                 };
             });
         return {
@@ -143,6 +145,18 @@ function initializeLineChart(csv) {
                 text: "UK vaccinated over time",
                 fontSize: 24,
                 display: true,
+            },
+            tooltips: {
+                callbacks: {
+                    label: function(tooltipItem, data) {
+                        var dataset = data.datasets[tooltipItem.datasetIndex]
+                        var data = dataset.data[tooltipItem.index];
+                        return dataset.label + ": "
+                            + data.y.toFixed(2) + "%"
+                            + " (" + formatPopulation(data.vaccinated)
+                            + " of " + formatPopulation(data.population) + ")";
+                    }
+                }
             },
             scales: {
                 yAxes: [{
