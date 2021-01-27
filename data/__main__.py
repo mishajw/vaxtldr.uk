@@ -9,6 +9,7 @@ from typing import Iterable, List
 import pandas as pd
 import seaborn as sns
 import streamlit as st
+import numpy as np
 from bs4 import BeautifulSoup
 
 # Source: https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/populationprojections/datasets/tablea21principalprojectionukpopulationinagegroups
@@ -46,7 +47,7 @@ class Source:
     period: str
 
 
-@dataclass
+@dataclass(frozen=True)
 class Slice:
     dose: str
     group: str = "all"
@@ -58,6 +59,7 @@ class Vaccinated:
     source: Source
     vaccinated: int
     slice: Slice
+    interpolated: bool = False
     extrapolated: bool = False
 
 
@@ -66,9 +68,15 @@ def main():
 
     data_sources = get_data_sources()
 
+    st.write("Parsing vaccinated")
     vaccinated = [v for source in data_sources for v in parse_df(source, get_sheet(source))]
+    st.write("Deaggregating")
     vaccinated = add_deaggregates(vaccinated)
     vaccinated = list(remove_aggregates(vaccinated))
+    st.write("Extrapolating dose 1 predictions")
+    vaccinated = add_extrapolations(vaccinated)
+    st.write("Extrapolating 12 week lag")
+    vaccinated = add_12w_dose_lag(vaccinated)
 
     df = pd.DataFrame(vaccinated)
     # Move field to top level.
@@ -80,17 +88,21 @@ def main():
     df = df.drop("source", axis=1)
     df = df.drop("slice", axis=1)
 
+    latest_underlying = df[~df["extrapolated"]]
     latest_over_80 = (
-        df[(df["real_date"] == df["real_date"].max()) & (df["group"] == ">=80")]
+        latest_underlying[
+            (latest_underlying["real_date"] == latest_underlying["real_date"].max())
+            & (latest_underlying["group"] == ">=80")
+        ]
         .groupby("dose")
         .sum("vaccinated")
         .reset_index()
     )
     latest_all_groups = (
-        df[(df["real_date"] == df["real_date"].max())]
-            .groupby("dose")
-            .sum("vaccinated")
-            .reset_index()
+        latest_underlying[(latest_underlying["real_date"] == latest_underlying["real_date"].max())]
+        .groupby("dose")
+        .sum("vaccinated")
+        .reset_index()
     )
     latest_over_80["group"] = ">=80"
     latest_all_groups["group"] = "all"
@@ -100,9 +112,10 @@ def main():
     latest = latest.sort_values(by="dose", ascending=False)
     latest.to_csv(OUTPUT_LATEST_DATA)
 
-    line = df.groupby(["dose", "real_date"]).sum().reset_index()
+    line = df.groupby(["dose", "real_date", "extrapolated"]).sum().reset_index()
     line["group"] = "all"
     line = add_population(line)
+    line["vaccinated"] = line[["vaccinated", "population"]].min(axis=1)
     line = line.sort_values(by="dose", ascending=False)
     line = line.sort_values(by="real_date")
     line.to_csv(OUTPUT_LINE_DATA)
@@ -110,8 +123,9 @@ def main():
     st.write(df)
     st.write(latest)
     st.write(line)
-    df = df.groupby(["real_date", "group"]).sum("vaccinated").reset_index()
-    sns.lineplot(data=df, x="real_date", y="vaccinated", hue="group")
+    df["group_and_dose"] = df["group"] + ", " + df["dose"]
+    df = df.groupby(["real_date", "group_and_dose"]).sum().reset_index()
+    sns.lineplot(data=df, x="real_date", y="vaccinated", hue="group_and_dose")
     st.pyplot()
 
 
@@ -179,7 +193,7 @@ def add_deaggregates(vaccinated: List[Vaccinated]) -> List[Vaccinated]:
                     and v.slice.location == aggregate.slice.location
                 ]
                 if len(unaggregates) == 0:
-                    deaggregates.extend(deaggregate_with_extrapolation(aggregate, dim, vaccinated))
+                    deaggregates.extend(deaggregate_with_interpolation(aggregate, dim, vaccinated))
                     continue
 
                 unaggregate_sum = sum(v.vaccinated for v in unaggregates)
@@ -197,7 +211,57 @@ def remove_aggregates(vaccinated: List[Vaccinated]) -> Iterable[Vaccinated]:
         yield v
 
 
-def deaggregate_with_extrapolation(
+def add_extrapolations(vaccinated: List[Vaccinated]) -> List[Vaccinated]:
+    max_date = max(v.source.real_date for v in vaccinated)
+
+    predictions = []
+    for slice in {v.slice for v in vaccinated}:
+        array = np.array(
+            [
+                [(v.source.real_date - max_date).days, v.vaccinated]
+                for v in vaccinated
+                if v.slice == slice and v.source.real_date > max_date - timedelta(days=7)
+            ]
+        )
+        m, b = np.polyfit(array[:, 0], array[:, 1], 1)
+        for plus_days in range(1, 52 * 7):
+            real_date = max_date + timedelta(days=plus_days)
+            predictions.append(
+                Vaccinated(
+                    Source("prediction", data_date=real_date, real_date=real_date, period="daily"),
+                    vaccinated=m * plus_days + b,
+                    slice=slice,
+                    extrapolated=True,
+                )
+            )
+    return vaccinated + predictions
+
+
+def add_12w_dose_lag(vaccinated: List[Vaccinated]) -> Iterable[Vaccinated]:
+    dose1s_by_date_slice = {
+        (v.source.real_date, v.slice.location, v.slice.group): v.vaccinated
+        for v in vaccinated
+        if v.slice.dose == "1"
+    }
+
+    new_vaccinated = []
+    for v in vaccinated:
+        if v.slice.dose != "2":
+            new_vaccinated.append(v)
+            continue
+        dose2 = v
+
+        dose1_date = dose2.source.real_date - timedelta(weeks=12)
+        key = dose1_date, dose2.slice.location, dose2.slice.group
+        if key not in dose1s_by_date_slice:
+            new_vaccinated.append(v)
+            continue
+        dose1 = dose1s_by_date_slice[key]
+        new_vaccinated.append(replace(dose2, vaccinated=dose2.vaccinated + dose1, extrapolated=True))
+    return new_vaccinated
+
+
+def deaggregate_with_interpolation(
     aggregate: Vaccinated, dim: str, vaccinated: List[Vaccinated]
 ) -> Iterable[Vaccinated]:
     other_dims = [d for d in SLICE_DIMS if d != dim]
@@ -214,7 +278,7 @@ def deaggregate_with_extrapolation(
     ]
 
     if len(vaccinated_weekly) < 2:
-        print(f"Failed to extrapolate {aggregate.slice} with {len(vaccinated_weekly)} samples")
+        print(f"Failed to interpolate {aggregate.slice} with {len(vaccinated_weekly)} samples")
         yield from []
         return
 
@@ -247,44 +311,8 @@ def deaggregate_with_extrapolation(
             source=aggregate.source,
             vaccinated=int(aggregate.vaccinated * ratio),
             slice=replace(aggregate.slice, **{dim: dim_value}),
-            extrapolated=True,
+            interpolated=True,
         )
-
-
-# def fill_in_groups(vaccinated: List[Vaccinated]) -> List[Vaccinated]:
-#     slices = itertools.product(
-#         {v.group for v in vaccinated},
-#         {v.dose for v in vaccinated},
-#         {v.location for v in vaccinated},
-#     )
-#
-#     for group, dose, location in slices:
-#         vaccinated_in_slice = [
-#             v
-#             for v in vaccinated
-#             if v.group == group
-#             and v.dose == dose
-#             and v.location == location
-#             and v.source.period == "weekly"
-#         ]
-#
-#         if any(v.source.period == "daily" for v in vaccinated_in_slice):
-#             # No filling in needed.
-#             continue
-#
-#         vaccinated_by_date = {v.source.real_date: v.vaccinated for v in vaccinated_in_slice}
-#
-#         st.write(vaccinated_by_date)
-#         dates: List[date] = list(sorted(vaccinated_by_date.keys()))
-#         for start, end in zip(dates, dates[1:]):
-#             # for days in range((start - end).days):
-#
-#             st.write(start, end)
-#
-#     # original = vaccinated
-#     # vaccinated = list(filter(lambda v: v.location == "all", vaccinated))
-#     # [for v in vaccinated if v.group == "<80"]
-#
 
 
 def parse_df(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated]:

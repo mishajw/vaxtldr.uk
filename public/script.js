@@ -110,6 +110,7 @@ function makeBarChart(id, title, csv, annotation) {
 }
 
 function initializeLineChart(csv) {
+    csv = csv.filter(function (row) { return row.extrapolated == "False"; });
     var doses = csv.map(function (row) { return row.dose; }).filter(distinct);
     var dates = csv
         .map(function (row) { return row.real_date; })
@@ -160,6 +161,7 @@ function initializeLineChart(csv) {
             },
             scales: {
                 yAxes: [{
+                    id: "y",
                     ticks: {
                         min: 0,
                         callback: function (value) {
@@ -167,7 +169,24 @@ function initializeLineChart(csv) {
                         }
                     }
                 }],
-            }
+            },
+//            annotation: {
+//                drawTime: "afterDatasetsDraw",
+//                annotations: [{
+//                    type: "line",
+//                    mode: "horizontal",
+//                    display: true,
+//                    scaleID: "y",
+//                    value: '70',
+//                    borderColor: "orange",
+//                    borderWidth: 2,
+//                    label: {
+//                        content: "Herd immunity\u00B9",
+//                        enabled: true,
+//                        xAdjust: 55,
+//                    }
+//                }]
+//            },
         },
     });
 }
