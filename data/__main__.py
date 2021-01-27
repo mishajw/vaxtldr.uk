@@ -11,6 +11,13 @@ import seaborn as sns
 import streamlit as st
 from bs4 import BeautifulSoup
 
+# Source: https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/populationprojections/datasets/tablea21principalprojectionukpopulationinagegroups
+POPULATION_BY_GROUP = {
+    "<80": 64094000,
+    ">=80": 3497000,
+    "all": 64094000 + 3497000,
+}
+
 FIRST_DATA_DATE = date(2021, 1, 11)
 URL = "https://www.england.nhs.uk/statistics/statistical-work-areas/covid-19-vaccinations/"
 # TODO: Some of the weekly come under "all". Use this data too.
@@ -27,7 +34,7 @@ DATES_WITH_2ND_SHEET = {
 }
 SLICE_DIMS = ["dose", "group", "location"]
 CACHE_DIR = Path("/tmp/vaxxtldr")
-OUTPUT_FILE = Path("public/data.csv")
+OUTPUT_LATEST_DATA = Path("public/latest.csv")
 
 
 @dataclass
@@ -63,6 +70,7 @@ def main():
     vaccinated = list(remove_aggregates(vaccinated))
 
     df = pd.DataFrame(vaccinated)
+    # Move field to top level.
     df["data_date"] = df["source"].apply(lambda s: s["data_date"])
     df["real_date"] = df["source"].apply(lambda s: s["real_date"])
     df["dose"] = df["slice"].apply(lambda s: s["dose"])
@@ -70,10 +78,29 @@ def main():
     df["location"] = df["slice"].apply(lambda s: s["location"])
     df = df.drop("source", axis=1)
     df = df.drop("slice", axis=1)
+
+    latest_over_80 = (
+        df[(df["real_date"] == df["real_date"].max()) & (df["group"] == ">=80")]
+        .groupby("dose")
+        .sum("vaccinated")
+        .reset_index()
+    )
+    latest_all_groups = (
+        df[(df["real_date"] == df["real_date"].max())]
+            .groupby("dose")
+            .sum("vaccinated")
+            .reset_index()
+    )
+    latest_over_80["group"] = ">=80"
+    latest_all_groups["group"] = "all"
+    latest = pd.concat([latest_over_80, latest_all_groups])
+    latest = add_population(latest)
+    latest = latest.sort_values(by="group", ascending=False)
+    latest = latest.sort_values(by="dose", ascending=False)
+    latest.to_csv(OUTPUT_LATEST_DATA)
+
     st.write(df)
-
-    df.to_csv(OUTPUT_FILE)
-
+    st.write(latest)
     df = df.groupby(["real_date", "group"]).sum("vaccinated").reset_index()
     sns.lineplot(data=df, x="real_date", y="vaccinated", hue="group")
     st.pyplot()
@@ -327,6 +354,11 @@ def parse_df_weekly(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated]:
         yield Vaccinated(source, u80_dose_2, Slice(group="<80", location=location, dose="2"))
         yield Vaccinated(source, o80_dose_2, Slice(group=">=80", location=location, dose="2"))
         yield Vaccinated(source, cumulative, Slice(location=location, dose="all"))
+
+
+def add_population(df: pd.DataFrame) -> pd.DataFrame:
+    df["population"] = df["group"].apply(lambda group: POPULATION_BY_GROUP[group])
+    return df
 
 
 if __name__ == "__main__":
