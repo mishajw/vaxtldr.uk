@@ -17,19 +17,14 @@
 <div class="wrapper">
     <div class="content">
         <h1 class="title">UK Vaccine TL;DR</h1>
-
-        <div class="description"></div>
+        <div class="description">
+            Updated daily using <a
+                href="https://www.england.nhs.uk/statistics/statistical-work-areas/covid-19-vaccinations"
+                target="" _blank>official NHS data</a>.
+        </div>
 
         <div class="chart">
             <canvas id="bar-all" height="80px"></canvas>
-        </div>
-
-        <div>
-            <!-- TODO: Find primary source. -->
-            &#185; WHO estimates we will reach herd immunity once 60-70% of the population has been
-            vaccinated (<a
-                href="https://www.reuters.com/article/us-health-coronavirus-immunity-analysis-idUSKBN27Y124"
-                target="_blank">source</a>).
         </div>
 
         <div class="chart">
@@ -39,15 +34,26 @@
         <div class="chart">
             <canvas id="line" height="200px"></canvas>
         </div>
+
+        <div>
+            <div>
+                <!-- TODO: Find primary source. -->
+                &#185; WHO estimates we will reach herd immunity once 60-70% of the population has been
+                vaccinated (<a
+                    href="https://www.reuters.com/article/us-health-coronavirus-immunity-analysis-idUSKBN27Y124"
+                    target="_blank">source</a>).
+            </div>
+            <div>
+                &#178; Annoyingly, NHS doesn't provide daily data broken down by age group. This
+                means we guess the daily >80s vaccinations using a combination of the daily and
+                weekly data.
+            </div>
+        </div>
     </div>
 </div>
 
 <footer class="description">
-    Updated daily using <a
-        href="https://www.england.nhs.uk/statistics/statistical-work-areas/covid-19-vaccinations"
-        target="" _blank>official NHS data</a>
-    <span class="description-separator">|</span>
     <a href="https://github.com/mishajw/vaxtldr.uk">Source</a>
-    by <a href="https://mishajw.com">mishajw</a>
+    by <a href="https://mishajw.com">mishajw</a>.
 </footer>
 </body>

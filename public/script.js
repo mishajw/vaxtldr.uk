@@ -37,7 +37,7 @@ function initializeBarCharts(csv) {
         annotation);
     makeBarChart(
         "bar-over-80",
-        "Percent of >80s vaccinated",
+        "Percent of >80s\u00B2 vaccinated",
         csv.filter(function (row) { return row.group == ">=80"; }),
         {});
 }
