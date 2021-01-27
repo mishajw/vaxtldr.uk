@@ -35,6 +35,7 @@ DATES_WITH_2ND_SHEET = {
 SLICE_DIMS = ["dose", "group", "location"]
 CACHE_DIR = Path("/tmp/vaxxtldr")
 OUTPUT_LATEST_DATA = Path("public/latest.csv")
+OUTPUT_LINE_DATA = Path("public/line.csv")
 
 
 @dataclass
@@ -99,8 +100,16 @@ def main():
     latest = latest.sort_values(by="dose", ascending=False)
     latest.to_csv(OUTPUT_LATEST_DATA)
 
+    line = df.groupby(["dose", "real_date"]).sum().reset_index()
+    line["group"] = "all"
+    line = add_population(line)
+    line = line.sort_values(by="dose", ascending=False)
+    line = line.sort_values(by="real_date")
+    line.to_csv(OUTPUT_LINE_DATA)
+
     st.write(df)
     st.write(latest)
+    st.write(line)
     df = df.groupby(["real_date", "group"]).sum("vaccinated").reset_index()
     sns.lineplot(data=df, x="real_date", y="vaccinated", hue="group")
     st.pyplot()

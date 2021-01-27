@@ -8,10 +8,11 @@ var DOSE_LABELS = {
 };
 
 function start() {
-    d3.csv("latest.csv").then(initialiseCharts);
+    d3.csv("latest.csv").then(initializeBarCharts);
+    d3.csv("line.csv").then(initializeLineChart);
 }
 
-function initialiseCharts(csv) {
+function initializeBarCharts(csv) {
 //    var groups = csv.map(function (row) { return row.group; }).filter(distinct);
     var annotation = {
         drawTime: "afterDatasetsDraw",
@@ -29,19 +30,19 @@ function initialiseCharts(csv) {
             }
         }]
     };
-    makeChart(
+    makeBarChart(
         "bar-all",
         "Percent of UK vaccinated",
         csv.filter(function (row) { return row.group == "all"; }),
-        annotation)
-    makeChart(
+        annotation);
+    makeBarChart(
         "bar-over-80",
         "Percent of >80s vaccinated",
         csv.filter(function (row) { return row.group == ">=80"; }),
-        {})
+        {});
 }
 
-function makeChart(id, title, csv, annotation) {
+function makeBarChart(id, title, csv, annotation) {
     var doses = csv.map(function (row) { return row.dose; }).filter(distinct);
     var vaccinated_per_dose = doses.map(function(dose) {
         // TODO: Unnest function.
@@ -105,6 +106,55 @@ function makeChart(id, title, csv, annotation) {
             },
             annotation: annotation,
         }
+    });
+}
+
+function initializeLineChart(csv) {
+    var doses = csv.map(function (row) { return row.dose; }).filter(distinct);
+    var dates = csv
+        .map(function (row) { return row.real_date; })
+        .filter(distinct);
+    var datasets = doses.map(function (dose) {
+        var vaccinated = csv
+            .filter(function(row) { return row.dose == dose; })
+            .map(function(row) {
+                var vaccinated = parseInt(row.vaccinated);
+                var population = parseFloat(row.population);
+                return {
+                    t: Date.parse(row.real_date),
+                    y: (vaccinated / population) * 100
+                };
+            });
+        return {
+            label: DOSE_LABELS[dose],
+            backgroundColor: DOSE_COLORS[dose],
+            data: vaccinated,
+        };
+    });
+
+    var chart = new Chart("line", {
+        type: "line",
+        data: {
+            labels: dates,
+            datasets: datasets,
+        },
+        options: {
+            title: {
+                text: "UK vaccinated over time",
+                fontSize: 24,
+                display: true,
+            },
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        min: 0,
+                        callback: function (value) {
+                            return value + "%"
+                        }
+                    }
+                }],
+            }
+        },
     });
 }
 
