@@ -1,0 +1,5 @@
+#content {
+  /* This stops the text from touching the sides: */
+  padding-left: 20px;
+  padding-right: 20px;
+}
