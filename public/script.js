@@ -19,13 +19,13 @@ function initialiseCharts(csv) {
             type: "line",
             display: true,
             scaleID: "x",
-            value: '82',
+            value: '70',
             borderColor: "orange",
             borderWidth: 2,
             label: {
-                content: "Herd immunity",
+                content: "Herd immunity\u00B9",
                 enabled: true,
-                position: "left",
+                xAdjust: 55,
             }
         }]
     };

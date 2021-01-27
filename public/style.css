@@ -1,5 +1,28 @@
-#content {
-  /* This stops the text from touching the sides: */
-  padding-left: 20px;
-  padding-right: 20px;
+.wrapper {
+    display: flex;
+    justify-content: center;
+    margin: 20px;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    width: 100%;
+    max-width: 800px;
+}
+
+.chart {
+    padding-top: 20px;
+    padding-bottom: 20px;
+}
+
+.title {
+    text-align: center;
+}
+
+.description {
+    text-align: center;
+    color: #333;
 }
