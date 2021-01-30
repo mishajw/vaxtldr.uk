@@ -20,27 +20,11 @@ function start() {
 }
 
 function initializeBarCharts(csv) {
-    var annotation = {
-        drawTime: "afterDatasetsDraw",
-        annotations: [{
-            type: "line",
-            display: true,
-            scaleID: "x",
-            value: '70',
-            borderColor: "#FFD700",
-            borderWidth: 2,
-            label: {
-                content: "Herd immunity" + SUPERSCRIPT_2,
-                enabled: true,
-                xAdjust: 55,
-            }
-        }]
-    };
     makeBarChart(
         "bar-all",
         "Percent of UK vaccinated",
         csv.filter(function (row) { return row.group == "all"; }),
-        annotation);
+        makeAnnotation("vertical", "x"));
     makeBarChart(
         "bar-over-80",
         "Percent of >80s" + SUPERSCRIPT_3 + " vaccinated",
@@ -116,23 +100,7 @@ function initializeLineCharts(csv) {
         "line-extrapolated",
         "Predicting UK vaccinations",
         csv,
-        {
-            drawTime: "afterDatasetsDraw",
-            annotations: [{
-                type: "line",
-                mode: "horizontal",
-                display: true,
-                scaleID: "y",
-                value: '70',
-                borderColor: "#FFD700",
-                borderWidth: 2,
-                label: {
-                    content: "Herd immunity\u00B9",
-                    enabled: true,
-                    xAdjust: 55,
-                }
-            }]
-        });
+        makeAnnotation("horizontal", "y"));
 }
 
 function makeLineChart(id, title, csv, annotation) {
@@ -212,6 +180,26 @@ function formatPopulation(number) {
     } else {
         return "LARGE";
     }
+}
+
+function makeAnnotation(mode, scaleId) {
+    return {
+        drawTime: "afterDatasetsDraw",
+        annotations: [{
+            mode: mode,
+            scaleID: scaleId,
+            type: "line",
+            display: true,
+            value: '70',
+            borderColor: "#FFD700",
+            borderWidth: 2,
+            label: {
+                content: "Herd immunity" + SUPERSCRIPT_2,
+                enabled: true,
+                xAdjust: 55,
+            }
+        }]
+    };
 }
 
 window.addEventListener("load", start);
