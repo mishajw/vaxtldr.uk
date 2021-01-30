@@ -24,14 +24,17 @@
                 target="_blank">official NHS data</a>.
         </div>
 
+        <h4 class="title">Percent of UK vaccinated</h4>
         <div class="chart">
             <canvas id="bar-all" height="80px"></canvas>
         </div>
 
+        <h4 class="title">Percent of >80s&#185; vaccinated</h4>
         <div class="chart">
             <canvas id="bar-over-80" height="80px"></canvas>
         </div>
 
+        <h4 class="title">UK vaccinated over time</h4>
         <div class="chart">
             <canvas id="line" height="200px"></canvas>
         </div>
@@ -39,7 +42,8 @@
         <div>
             <div>
                 <!-- TODO: Find primary source. -->
-                &#185; WHO estimates we will reach herd immunity once 60-70% of the population has been
+                &#185; WHO estimates we will reach herd immunity once 60-70% of the population has
+                been
                 vaccinated (<a
                     href="https://www.reuters.com/article/us-health-coronavirus-immunity-analysis-idUSKBN27Y124"
                     target="_blank">source</a>).
@@ -49,6 +53,19 @@
                 means we guess the daily >80s vaccinations using a combination of the daily and
                 weekly data.
             </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <h4 class="title">Extrapolating UK vaccinations</h4>
+        <div>
+            <!-- TODO: Find source. -->
+            We make some simple guesses about the future of UK vaccinations, using (1) the rate of
+            UK vaccinations across the last week, and (2) the 12 week gap between 1st & 2nd doses
+            (as stated by the UK government).
+        </div>
+        <div class="chart">
+            <canvas id="line-extrapolated" height="200px"></canvas>
         </div>
     </div>
 </div>

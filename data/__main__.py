@@ -1,3 +1,4 @@
+from datetime import date
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -26,8 +27,12 @@ def main():
     vaccinated = list(inference.remove_aggregates(vaccinated))
     st.write("Extrapolating dose 1 predictions")
     vaccinated = inference.add_extrapolations(vaccinated)
+    st.write("Decumulating")
+    vaccinated = list(inference.make_non_cumulative(vaccinated))
     st.write("Extrapolating 12 week lag")
     vaccinated = inference.add_12w_dose_lag(vaccinated)
+    st.write("Cumulating")
+    vaccinated = list(inference.make_cumulative(vaccinated))
     st.write("Adding dose 2 + 2 weeks")
     vaccinated = inference.add_dose_2_wait(vaccinated)
 
@@ -65,17 +70,13 @@ def main():
     latest = latest.sort_values(by="dose", ascending=False)
     latest.to_csv(OUTPUT_LATEST_DATA)
 
-    line = df[~df["extrapolated"]]
-    line = line.groupby(["dose", "real_date"]).sum().reset_index()
+    line = df.groupby(["dose", "real_date", "extrapolated"]).sum().reset_index()
     line["group"] = "all"
     line = add_population(line)
     line["vaccinated"] = line[["vaccinated", "population"]].min(axis=1)
     line = line.sort_values(by="real_date")
     line.to_csv(OUTPUT_LINE_DATA)
     line["perc"] = line["vaccinated"] / line["population"]
-    sns.lineplot(data=line, x="real_date", y="perc", hue="dose")
-    plt.xticks(rotation=90)
-    st.pyplot()
 
     st.write(df)
     st.write(latest)

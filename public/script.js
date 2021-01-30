@@ -12,7 +12,7 @@ var DOSE_LABELS = {
 
 function start() {
     d3.csv("latest.csv").then(initializeBarCharts);
-    d3.csv("line.csv").then(initializeLineChart);
+    d3.csv("line.csv").then(initializeLineCharts);
 }
 
 function initializeBarCharts(csv) {
@@ -71,11 +71,6 @@ function makeBarChart(id, title, csv, annotation) {
             datasets: vaccinated_per_dose,
         },
         options: {
-            title: {
-                text: title,
-                fontSize: 24,
-                display: true,
-            },
             tooltips: {
                 callbacks: {
                     label: function(tooltipItem, data) {
@@ -110,7 +105,34 @@ function makeBarChart(id, title, csv, annotation) {
     });
 }
 
-function initializeLineChart(csv) {
+function initializeLineCharts(csv) {
+    var csvNotExtrapolated = csv.filter(function (row) { return row.extrapolated == "False"; });
+    makeLineChart("line", "UK vaccinated over time", csvNotExtrapolated, {});
+    makeLineChart(
+        "line-extrapolated",
+        "UK vaccinated over time, extrapolated",
+        csv,
+        {
+            drawTime: "afterDatasetsDraw",
+            annotations: [{
+                type: "line",
+                mode: "horizontal",
+                display: true,
+                scaleID: "y",
+                value: '70',
+                borderColor: "orange",
+                borderWidth: 2,
+                label: {
+                    content: "Herd immunity\u00B9",
+                    enabled: true,
+                    xAdjust: 55,
+                }
+            }]
+        });
+}
+
+function makeLineChart(id, title, csv, annotation) {
+//    csv = csv.filter(function (row) { return row.extrapolated == "False"; });
     var dates = csv
         .map(function (row) { return row.real_date; })
         .filter(distinct);
@@ -134,18 +156,13 @@ function initializeLineChart(csv) {
         };
     });
 
-    var chart = new Chart("line", {
+    var chart = new Chart(id, {
         type: "line",
         data: {
             labels: dates,
             datasets: datasets,
         },
         options: {
-            title: {
-                text: "UK vaccinated over time",
-                fontSize: 24,
-                display: true,
-            },
             tooltips: {
                 callbacks: {
                     label: function(tooltipItem, data) {
@@ -173,23 +190,7 @@ function initializeLineChart(csv) {
                     }
                 }],
             },
-//            annotation: {
-//                drawTime: "afterDatasetsDraw",
-//                annotations: [{
-//                    type: "line",
-//                    mode: "horizontal",
-//                    display: true,
-//                    scaleID: "y",
-//                    value: '70',
-//                    borderColor: "orange",
-//                    borderWidth: 2,
-//                    label: {
-//                        content: "Herd immunity\u00B9",
-//                        enabled: true,
-//                        xAdjust: 55,
-//                    }
-//                }]
-//            },
+            annotation: annotation,
         },
     });
 }

@@ -58,6 +58,28 @@ def remove_aggregates(vaccinated: List[Vaccinated]) -> Iterable[Vaccinated]:
         yield v
 
 
+def make_non_cumulative(vaccinated: List[Vaccinated]) -> Iterable[Vaccinated]:
+    slices = {v.slice for v in vaccinated}
+    for slice in slices:
+        vs = [v for v in vaccinated if v.slice == slice]
+        vs = sorted(vs, key=lambda v: v.source.real_date)
+        yield vs[0]
+        for v1, v2 in zip(vs, vs[1:]):
+            # assert v1.vaccinated <= v2.vaccinated, slice
+            yield replace(v2, vaccinated=v2.vaccinated - v1.vaccinated)
+
+
+def make_cumulative(vaccinated: List[Vaccinated]) -> Iterable[Vaccinated]:
+    slices = {v.slice for v in vaccinated}
+    for slice in slices:
+        vs = [v for v in vaccinated if v.slice == slice]
+        vs = sorted(vs, key=lambda v: v.source.real_date)
+        cumulative = 0
+        for v in vs:
+            cumulative += v.vaccinated
+            yield replace(v, vaccinated=cumulative)
+
+
 def add_extrapolations(vaccinated: List[Vaccinated]) -> List[Vaccinated]:
     max_date = max(v.source.real_date for v in vaccinated)
 
@@ -73,12 +95,12 @@ def add_extrapolations(vaccinated: List[Vaccinated]) -> List[Vaccinated]:
         if len(array) <= 1:
             continue
         m, b = np.polyfit(array[:, 0], array[:, 1], 1)
-        for plus_days in range(1, 52 * 7):
-            real_date = max_date + timedelta(days=plus_days)
+        for plus_weeks in range(1, 52):
+            real_date = max_date + timedelta(weeks=plus_weeks)
             predictions.append(
                 Vaccinated(
                     Source("prediction", data_date=real_date, real_date=real_date, period="daily"),
-                    vaccinated=m * plus_days + b,
+                    vaccinated=m * plus_weeks * 7 + b,
                     slice=slice,
                     extrapolated=True,
                 )
@@ -107,7 +129,7 @@ def add_12w_dose_lag(vaccinated: List[Vaccinated]) -> List[Vaccinated]:
             continue
         dose1 = dose1s_by_date_slice[key]
         new_vaccinated.append(
-            replace(dose2, vaccinated=dose2.vaccinated + dose1, extrapolated=True)
+            replace(dose2, vaccinated=max(dose2.vaccinated, dose1), extrapolated=True)
         )
     return new_vaccinated
 
