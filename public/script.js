@@ -23,7 +23,7 @@ function initializeBarCharts(csv) {
             display: true,
             scaleID: "x",
             value: '70',
-            borderColor: "orange",
+            borderColor: "#FFD700",
             borderWidth: 2,
             label: {
                 content: "Herd immunity\u00B9",
@@ -120,7 +120,7 @@ function initializeLineCharts(csv) {
                 display: true,
                 scaleID: "y",
                 value: '70',
-                borderColor: "orange",
+                borderColor: "#FFD700",
                 borderWidth: 2,
                 label: {
                     content: "Herd immunity\u00B9",
@@ -132,7 +132,6 @@ function initializeLineCharts(csv) {
 }
 
 function makeLineChart(id, title, csv, annotation) {
-//    csv = csv.filter(function (row) { return row.extrapolated == "False"; });
     var dates = csv
         .map(function (row) { return row.real_date; })
         .filter(distinct);
