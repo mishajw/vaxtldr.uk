@@ -1,16 +1,18 @@
 import math
 import re
 import urllib.request
-from dataclasses import dataclass, replace
+from dataclasses import replace
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Iterable, List
 
+import numpy as np
 import pandas as pd
 import seaborn as sns
 import streamlit as st
-import numpy as np
 from bs4 import BeautifulSoup
+import matplotlib.pyplot as plt
+from data.types import Source, Vaccinated, Slice
 
 # Source: https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/populationprojections/datasets/tablea21principalprojectionukpopulationinagegroups
 POPULATION_BY_GROUP = {
@@ -19,13 +21,13 @@ POPULATION_BY_GROUP = {
     "all": 64094000 + 3497000,
 }
 
-FIRST_DATA_DATE = date(2021, 1, 11)
+FIRST_DAILY_DATA = date(2021, 1, 9)
 URL = "https://www.england.nhs.uk/statistics/statistical-work-areas/covid-19-vaccinations/"
 # TODO: Some of the weekly come under "all". Use this data too.
 URL_REGEX = re.compile(
     r"https://www.england.nhs.uk/statistics/wp-content/uploads/sites"
     r"/\d/\d{4}/\d{2}/"
-    r"COVID-19-([Dd]aily|weekly)-announced-vaccinations-(\d+-[a-zA-Z]+-\d+)(-\d+)?.xlsx"
+    r"COVID-19-([Dd]aily|weekly|total)-announced-vaccinations-(\d+-[a-zA-Z]+-\d+)(-\d+)?.xlsx"
 )
 DATES_WITH_2ND_SHEET = {
     date(2021, 1, 12),
@@ -37,30 +39,6 @@ SLICE_DIMS = ["dose", "group", "location"]
 CACHE_DIR = Path("/tmp/vaxxtldr")
 OUTPUT_LATEST_DATA = Path("public/latest.csv")
 OUTPUT_LINE_DATA = Path("public/line.csv")
-
-
-@dataclass
-class Source:
-    url: str
-    data_date: date
-    real_date: date
-    period: str
-
-
-@dataclass(frozen=True)
-class Slice:
-    dose: str
-    group: str = "all"
-    location: str = "all"
-
-
-@dataclass
-class Vaccinated:
-    source: Source
-    vaccinated: int
-    slice: Slice
-    interpolated: bool = False
-    extrapolated: bool = False
 
 
 def main():
@@ -77,6 +55,8 @@ def main():
     vaccinated = add_extrapolations(vaccinated)
     st.write("Extrapolating 12 week lag")
     vaccinated = add_12w_dose_lag(vaccinated)
+    st.write("Adding dose 2 + 2 weeks")
+    vaccinated = add_dose_2_wait(vaccinated)
 
     df = pd.DataFrame(vaccinated)
     # Move field to top level.
@@ -126,6 +106,7 @@ def main():
     df["group_and_dose"] = df["group"] + ", " + df["dose"]
     df = df.groupby(["real_date", "group_and_dose"]).sum().reset_index()
     sns.lineplot(data=df, x="real_date", y="vaccinated", hue="group_and_dose")
+    plt.xticks(rotation=90)
     st.pyplot()
 
 
@@ -143,6 +124,8 @@ def get_data_sources() -> Iterable[Source]:
             continue
         assert match, url
         period = match.group(1).lower()
+        if period == "total":
+            period = "weekly"
         data_date_str = match.group(2)
         data_date = datetime.strptime(data_date_str, "%d-%B-%Y").date()
         delay = timedelta(days=1 if period == "daily" else 4)
@@ -206,7 +189,12 @@ def add_deaggregates(vaccinated: List[Vaccinated]) -> List[Vaccinated]:
 
 def remove_aggregates(vaccinated: List[Vaccinated]) -> Iterable[Vaccinated]:
     for v in vaccinated:
-        if any(getattr(v.slice, dim) == "all" for dim in SLICE_DIMS) or v.source.period == "weekly":
+        if v.slice.group == "all" or v.slice.dose == "all":
+            continue
+        if v.slice.location != "all":
+            # TODO: Verify that we can remove deagg'd location data.
+            continue
+        if v.source.real_date >= FIRST_DAILY_DATA and v.source.period == "weekly":
             continue
         yield v
 
@@ -223,6 +211,8 @@ def add_extrapolations(vaccinated: List[Vaccinated]) -> List[Vaccinated]:
                 if v.slice == slice and v.source.real_date > max_date - timedelta(days=7)
             ]
         )
+        if len(array) <= 1:
+            continue
         m, b = np.polyfit(array[:, 0], array[:, 1], 1)
         for plus_days in range(1, 52 * 7):
             real_date = max_date + timedelta(days=plus_days)
@@ -237,7 +227,7 @@ def add_extrapolations(vaccinated: List[Vaccinated]) -> List[Vaccinated]:
     return vaccinated + predictions
 
 
-def add_12w_dose_lag(vaccinated: List[Vaccinated]) -> Iterable[Vaccinated]:
+def add_12w_dose_lag(vaccinated: List[Vaccinated]) -> List[Vaccinated]:
     dose1s_by_date_slice = {
         (v.source.real_date, v.slice.location, v.slice.group): v.vaccinated
         for v in vaccinated
@@ -257,8 +247,28 @@ def add_12w_dose_lag(vaccinated: List[Vaccinated]) -> Iterable[Vaccinated]:
             new_vaccinated.append(v)
             continue
         dose1 = dose1s_by_date_slice[key]
-        new_vaccinated.append(replace(dose2, vaccinated=dose2.vaccinated + dose1, extrapolated=True))
+        new_vaccinated.append(
+            replace(dose2, vaccinated=dose2.vaccinated + dose1, extrapolated=True)
+        )
     return new_vaccinated
+
+
+def add_dose_2_wait(vaccinated: List[Vaccinated]) -> List[Vaccinated]:
+    max_date = max(v.source.real_date for v in vaccinated if not v.extrapolated)
+    dose_2_wait = []
+    for v in vaccinated:
+        if v.slice.dose != "2":
+            continue
+        wait_date = v.source.real_date + timedelta(weeks=2)
+        dose_2_wait.append(
+            replace(
+                v,
+                slice=replace(v.slice, dose="2_wait"),
+                source=replace(v.source, real_date=wait_date),
+                extrapolated=v.extrapolated or wait_date > max_date,
+            )
+        )
+    return vaccinated + dose_2_wait
 
 
 def deaggregate_with_interpolation(
@@ -278,7 +288,11 @@ def deaggregate_with_interpolation(
     ]
 
     if len(vaccinated_weekly) < 2:
-        print(f"Failed to interpolate {aggregate.slice} with {len(vaccinated_weekly)} samples")
+        print(
+            f"Failed to interpolate "
+            f"{aggregate.slice} {aggregate.source.real_date} "
+            f"with {len(vaccinated_weekly)} samples"
+        )
         yield from []
         return
 
@@ -316,6 +330,22 @@ def deaggregate_with_interpolation(
 
 
 def parse_df(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated]:
+    # Data overrides. Some data formats are only used once, and not worth writing parsers for.
+    if source.data_date == date(2021, 1, 7) and source.period == "weekly":
+        return [
+            Vaccinated(source, 438075, Slice("1", "<80", "all")),
+            Vaccinated(source, 13567, Slice("2", "<80", "all")),
+            Vaccinated(source, 654810, Slice("1", ">=80", "all")),
+            Vaccinated(source, 6414, Slice("2", ">=80", "all")),
+        ]
+    elif source.data_date == date(2020, 12, 31) and source.period == "weekly":
+        return [
+            Vaccinated(source, 261561, Slice("1", "<80", "all")),
+            Vaccinated(source, 0, Slice("2", "<80", "all")),
+            Vaccinated(source, 524439, Slice("1", ">=80", "all")),
+            Vaccinated(source, 0, Slice("2", ">=80", "all")),
+        ]
+
     if source.period == "daily":
         if source.data_date >= date(2021, 1, 18):
             return parse_df_from_2020_01_18(source, df)
@@ -381,9 +411,12 @@ def parse_df_weekly(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated]:
             continue
         if location == "Data quality notes:":
             break
-        u80_dose_1, o80_dose_1, u80_dose_2, o80_dose_2, cumulative = filter(
-            lambda d: not math.isnan(d), data
-        )
+        data = list(filter(lambda d: not math.isnan(d), data))
+        if len(data) == 5:
+            u80_dose_1, o80_dose_1, u80_dose_2, o80_dose_2, cumulative = data
+        elif len(data) == 7:
+            # Data includes percentage of >=80s, ignore it.
+            u80_dose_1, o80_dose_1, _, u80_dose_2, o80_dose_2, __, cumulative = data
         if location == "Total":
             location = "all"
         yield Vaccinated(source, u80_dose_1, Slice(group="<80", location=location, dose="1"))
