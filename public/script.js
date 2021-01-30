@@ -25,15 +25,15 @@ function initializeBarCharts(csv) {
         "bar-all",
         "Percent of UK vaccinated",
         csv.filter(function (row) { return row.group == "all"; }),
-        makeAnnotation("vertical", "x"));
+        [herdImmunityAnnotation("vertical", "x", true)]);
     makeBarChart(
         "bar-over-80",
         "Percent of >80s" + SUPERSCRIPT_3 + " vaccinated",
         csv.filter(function (row) { return row.group == ">=80"; }),
-        {});
+        []);
 }
 
-function makeBarChart(id, title, csv, annotation) {
+function makeBarChart(id, title, csv, annotations) {
     var vaccinated_per_dose = DOSES.map(function(dose) {
         // TODO: Unnest function.
         var vaccinated = csv
@@ -89,22 +89,53 @@ function makeBarChart(id, title, csv, annotation) {
                     }
                 }],
             },
-            annotation: annotation,
+            annotation: {
+                drawTime: "afterDatasetsDraw",
+                annotations: annotations,
+            },
         }
     });
 }
 
 function initializeLineCharts(csv) {
+    var herdImmunityDate = '';
+    csv.forEach(function (row) {
+        if (herdImmunityDate != '' || row.dose != "2_wait") {
+            return;
+        }
+        var vaccinated = parseInt(row.vaccinated);
+        var population = parseFloat(row.population);
+        if ((vaccinated / population) > 0.7) {
+            herdImmunityDate = row.real_date;
+        }
+    });
+
     var csvNotExtrapolated = csv.filter(function (row) { return row.extrapolated == "False"; });
-    makeLineChart("line", "UK vaccinated over time", csvNotExtrapolated, {});
+    makeLineChart("line", "UK vaccinated over time", csvNotExtrapolated, []);
     makeLineChart(
         "line-extrapolated",
         "Predicting UK vaccinations",
         csv,
-        makeAnnotation("horizontal", "y"));
+        [
+            herdImmunityAnnotation("horizontal", "y", false),
+            {
+                mode: "vertical",
+                scaleID: "x",
+                type: "line",
+                display: true,
+                value: herdImmunityDate,
+                borderColor: "#FFD700",
+                borderWidth: 2,
+                label: {
+                    content: 'Est. ' + new Date(herdImmunityDate).toLocaleDateString(),
+                    enabled: true,
+                    xAdjust: 50,
+                }
+            }
+        ]);
 }
 
-function makeLineChart(id, title, csv, annotation) {
+function makeLineChart(id, title, csv, annotations) {
     var dates = csv
         .map(function (row) { return row.real_date; })
         .filter(distinct);
@@ -162,7 +193,10 @@ function makeLineChart(id, title, csv, annotation) {
                     }
                 }],
             },
-            annotation: annotation,
+            annotation: {
+                drawTime: "afterDatasetsDraw",
+                annotations: annotations,
+            },
         },
     });
 }
@@ -200,23 +234,20 @@ function formatPopulation(number) {
     }
 }
 
-function makeAnnotation(mode, scaleId) {
+function herdImmunityAnnotation(mode, scaleId, adjust) {
     return {
-        drawTime: "afterDatasetsDraw",
-        annotations: [{
-            mode: mode,
-            scaleID: scaleId,
-            type: "line",
-            display: true,
-            value: '70',
-            borderColor: "#FFD700",
-            borderWidth: 2,
-            label: {
-                content: "Herd immunity" + SUPERSCRIPT_2,
-                enabled: true,
-                xAdjust: 55,
-            }
-        }]
+        mode: mode,
+        scaleID: scaleId,
+        type: "line",
+        display: true,
+        value: '70',
+        borderColor: "#FFD700",
+        borderWidth: 2,
+        label: {
+            content: "Herd immunity" + SUPERSCRIPT_2,
+            enabled: true,
+            xAdjust: adjust ? 55 : 0,
+        }
     };
 }
 
