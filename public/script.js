@@ -114,7 +114,7 @@ function initializeLineCharts(csv) {
     makeLineChart("line", "UK vaccinated over time", csvNotExtrapolated, {});
     makeLineChart(
         "line-extrapolated",
-        "UK vaccinated over time, extrapolated",
+        "Predicting UK vaccinations",
         csv,
         {
             drawTime: "afterDatasetsDraw",
