@@ -1,8 +1,8 @@
 var DOSES = ["2_wait", "2", "1"];
 var DOSE_COLORS = {
-    "2_wait": "rgb(0, 0, 255)",
-    "2": "rgb(75, 192, 192)",
-    "1": "rgb(255, 205, 86)",
+    "2_wait": "#205072",
+    "2": "#56C596",
+    "1": "#CFF4D2",
 };
 var DOSE_LABELS = {
     "2_wait": "2nd dose + 2 weeks",
