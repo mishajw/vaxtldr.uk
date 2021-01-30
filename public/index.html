@@ -75,11 +75,19 @@
         <div class="divider"></div>
 
         <h4 class="title">Predicting UK vaccinations</h4>
-        <div>
-            <!-- TODO: Find source. -->
-            We make some simple guesses about the future of UK vaccinations, using (1) how many
-            vaccines were given in the last week, and (2) the 12 week gap between 1st & 2nd doses
-            (as stated by the UK government).
+        <div class="footnotes">
+            <div>
+                <!-- TODO: Find source. -->
+                We make some simple guesses about the future of UK vaccinations, using (1) how many
+                vaccines were given in the last week, and (2) the 12 week gap between 1st & 2nd
+                doses (as <a
+                    href="https://www.gov.uk/government/news/statement-from-the-uk-chief-medical-officers-on-the-prioritisation-of-first-doses-of-covid-19-vaccines"
+                    target="_blank">stated</a> by the UK government).
+            </div>
+            <div>
+                These predictions are extremely simple, and only serve as a guide to the current UK
+                vaccination trajectory.
+            </div>
         </div>
         <div class="chart">
             <canvas id="line-extrapolated" height="200px"></canvas>
