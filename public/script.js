@@ -24,12 +24,16 @@ function initializeBarCharts(csv) {
     makeBarChart(
         "bar-all",
         "Percent of UK vaccinated",
-        csv.filter(function (row) { return row.group == "all"; }),
+        csv.filter(function(row) {
+            return row.group == "all";
+        }),
         [herdImmunityAnnotation("vertical", "x", true)]);
     makeBarChart(
         "bar-over-80",
         "Percent of >80s" + SUPERSCRIPT_3 + " vaccinated",
-        csv.filter(function (row) { return row.group == ">=80"; }),
+        csv.filter(function(row) {
+            return row.group == ">=80";
+        }),
         []);
 }
 
@@ -37,7 +41,9 @@ function makeBarChart(id, title, csv, annotations) {
     var vaccinated_per_dose = DOSES.map(function(dose) {
         // TODO: Unnest function.
         var vaccinated = csv
-            .filter(function(row) { return row.dose == dose; })
+            .filter(function(row) {
+                return row.dose == dose;
+            })
             .map(function(row) {
                 var vaccinated = parseInt(row.vaccinated);
                 var population = parseFloat(row.population);
@@ -65,17 +71,19 @@ function makeBarChart(id, title, csv, annotations) {
                     label: function(tooltipItem, data) {
                         var dataset = data.datasets[tooltipItem.datasetIndex]
                         var data = dataset.data[tooltipItem.index];
-                        return dataset.label + ": "
-                            + data.x.toFixed(2) + "%"
-                            + " (" + formatPopulation(data.vaccinated)
-                            + " of " + formatPopulation(data.population) + ")";
+                        return dataset.label + ": " +
+                            data.x.toFixed(2) + "%" +
+                            " (" + formatPopulation(data.vaccinated) +
+                            " of " + formatPopulation(data.population) + ")";
                     }
                 }
             },
             scales: {
                 yAxes: [{
                     stacked: true,
-                    ticks: {display: false}
+                    ticks: {
+                        display: false
+                    }
                 }],
                 xAxes: [{
                     id: 'x',
@@ -83,7 +91,7 @@ function makeBarChart(id, title, csv, annotations) {
                     ticks: {
                         min: 0,
                         max: 100,
-                        callback: function (value) {
+                        callback: function(value) {
                             return value + "%"
                         }
                     }
@@ -99,7 +107,7 @@ function makeBarChart(id, title, csv, annotations) {
 
 function initializeLineCharts(csv) {
     var herdImmunityDate = '';
-    csv.forEach(function (row) {
+    csv.forEach(function(row) {
         if (herdImmunityDate != '' || row.dose != "2_wait") {
             return;
         }
@@ -110,7 +118,9 @@ function initializeLineCharts(csv) {
         }
     });
 
-    var csvNotExtrapolated = csv.filter(function (row) { return row.extrapolated == "False"; });
+    var csvNotExtrapolated = csv.filter(function(row) {
+        return row.extrapolated == "False";
+    });
     makeLineChart("line", "UK vaccinated over time", csvNotExtrapolated, []);
     makeLineChart(
         "line-extrapolated",
@@ -137,11 +147,15 @@ function initializeLineCharts(csv) {
 
 function makeLineChart(id, title, csv, annotations) {
     var dates = csv
-        .map(function (row) { return row.real_date; })
+        .map(function(row) {
+            return row.real_date;
+        })
         .filter(distinct);
-    var datasets = DOSES.map(function (dose) {
+    var datasets = DOSES.map(function(dose) {
         var vaccinated = csv
-            .filter(function(row) { return row.dose == dose; })
+            .filter(function(row) {
+                return row.dose == dose;
+            })
             .map(function(row) {
                 var vaccinated = parseInt(row.vaccinated);
                 var population = parseFloat(row.population);
@@ -171,10 +185,10 @@ function makeLineChart(id, title, csv, annotations) {
                     label: function(tooltipItem, data) {
                         var dataset = data.datasets[tooltipItem.datasetIndex]
                         var data = dataset.data[tooltipItem.index];
-                        return dataset.label + ": "
-                            + data.y.toFixed(2) + "%"
-                            + " (" + formatPopulation(data.vaccinated)
-                            + " of " + formatPopulation(data.population) + ")";
+                        return dataset.label + ": " +
+                            data.y.toFixed(2) + "%" +
+                            " (" + formatPopulation(data.vaccinated) +
+                            " of " + formatPopulation(data.population) + ")";
                     }
                 }
             },
@@ -187,7 +201,7 @@ function makeLineChart(id, title, csv, annotations) {
                     id: "y",
                     ticks: {
                         min: 0,
-                        callback: function (value) {
+                        callback: function(value) {
                             return value + "%"
                         }
                     }
@@ -211,15 +225,15 @@ function setLatestData() {
         var runDate = new Date(split[0]);
         var dataDate = new Date(split[1]);
         document.getElementById("freshness").innerHTML =
-            "Last updated on " + runDate.toLocaleDateString('en-GB') + ", "
-            + " with data from " + dataDate.toLocaleDateString('en-GB') +  ".";
+            "Last updated on " + runDate.toLocaleDateString('en-GB') + ", " +
+            " with data from " + dataDate.toLocaleDateString('en-GB') + ".";
     };
     xhttp.open("GET", "freshness.txt", true);
     xhttp.send();
 }
 
 function distinct(value, index, self) {
-  return self.indexOf(value) === index;
+    return self.indexOf(value) === index;
 }
 
 function formatPopulation(number) {
