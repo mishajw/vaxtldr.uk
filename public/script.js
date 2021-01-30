@@ -127,7 +127,22 @@ function initializeLineCharts(csv) {
     var csvNotExtrapolated = csv.filter(function(row) {
         return row.extrapolated == "False";
     });
-    makeLineChart("line", "UK vaccinated over time", csvNotExtrapolated, []);
+    makeLineChart(
+        "line",
+        "UK vaccinated over time",
+        csvNotExtrapolated,
+        [
+            governmentTargetAnnotation("horizontal", "y", true),
+            {
+                mode: "vertical",
+                scaleID: "x",
+                type: "line",
+                display: true,
+                value: '2021-02-15',
+                borderColor: "#D5212E",
+                borderWidth: 2,
+            }
+        ]);
     makeLineChart(
         "line-extrapolated",
         "Predicting UK vaccinations",
@@ -202,6 +217,9 @@ function makeLineChart(id, title, csv, annotations) {
                 xAxes: [{
                     id: "x",
                     type: "time",
+                    time: {
+                        max: '2021-02-17',
+                    }
                 }],
                 yAxes: [{
                     id: "y",
