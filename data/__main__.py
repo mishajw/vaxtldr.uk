@@ -51,8 +51,7 @@ def main():
     latest_date = latest_underlying["real_date"].max()
     latest_over_80 = (
         latest_underlying[
-            (latest_underlying["real_date"] == latest_date)
-            & (latest_underlying["group"] == ">=80")
+            (latest_underlying["real_date"] == latest_date) & (latest_underlying["group"] == ">=80")
         ]
         .groupby("dose")
         .sum("vaccinated")
