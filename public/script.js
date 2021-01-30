@@ -1,6 +1,7 @@
 var SUPERSCRIPT_1 = "\u00B9";
 var SUPERSCRIPT_2 = "\u00B2";
 var SUPERSCRIPT_3 = "\u00B3";
+var SUPERSCRIPT_4 = "\u2074";
 
 var DOSES = ["2_wait", "2", "1"];
 var DOSE_COLORS = {
@@ -13,6 +14,8 @@ var DOSE_LABELS = {
     "2": "2nd dose",
     "1": "1st dose",
 };
+var GOVERNMENT_TARGET_NUM = 13_900_000;
+var GOVERNMENT_TARGET_PERCENT = GOVERNMENT_TARGET_NUM / (64094000 + 3497000);
 
 function start() {
     d3.csv("latest.csv").then(initializeBarCharts);
@@ -27,10 +30,13 @@ function initializeBarCharts(csv) {
         csv.filter(function(row) {
             return row.group == "all";
         }),
-        [herdImmunityAnnotation("vertical", "x", true)]);
+        [
+            herdImmunityAnnotation("vertical", "x", true),
+            governmentTargetAnnotation("vertical", "x", true),
+        ]);
     makeBarChart(
         "bar-over-80",
-        "Percent of >80s" + SUPERSCRIPT_3 + " vaccinated",
+        "Percent of >80s" + SUPERSCRIPT_4 + " vaccinated",
         csv.filter(function(row) {
             return row.group == ">=80";
         }),
@@ -258,9 +264,26 @@ function herdImmunityAnnotation(mode, scaleId, adjust) {
         borderColor: "#FFD700",
         borderWidth: 2,
         label: {
-            content: "Herd immunity" + SUPERSCRIPT_2,
+            content: "Herd immunity" + SUPERSCRIPT_3,
             enabled: true,
             xAdjust: adjust ? 55 : 0,
+        }
+    };
+}
+
+function governmentTargetAnnotation(mode, scaleId, adjust) {
+    return {
+        mode: mode,
+        scaleID: scaleId,
+        type: "line",
+        display: true,
+        value: GOVERNMENT_TARGET_PERCENT * 100,
+        borderColor: "#D5212E",
+        borderWidth: 2,
+        label: {
+            content: "Mid-Feb target" + SUPERSCRIPT_2,
+            enabled: true,
+            xAdjust: adjust ? 53 : 0,
         }
     };
 }
