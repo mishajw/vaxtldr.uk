@@ -142,7 +142,8 @@ function initializeLineCharts(csv) {
                 borderColor: "#D5212E",
                 borderWidth: 2,
             }
-        ]);
+        ],
+        true);
     makeLineChart(
         "line-extrapolated",
         "Predicting UK vaccinations",
@@ -166,7 +167,7 @@ function initializeLineCharts(csv) {
         ]);
 }
 
-function makeLineChart(id, title, csv, annotations) {
+function makeLineChart(id, title, csv, annotations, limit) {
     var dates = csv
         .map(function(row) {
             return row.real_date;
@@ -218,7 +219,7 @@ function makeLineChart(id, title, csv, annotations) {
                     id: "x",
                     type: "time",
                     time: {
-                        max: '2021-02-17',
+                        max: limit ? '2021-02-17' : undefined,
                     }
                 }],
                 yAxes: [{
