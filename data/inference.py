@@ -124,7 +124,7 @@ def add_dose_2_wait(vaccinated: List[Vaccinated]) -> List[Vaccinated]:
                 v,
                 slice=replace(v.slice, dose="2_wait"),
                 source=replace(v.source, real_date=wait_date),
-                extrapolated=v.extrapolated or wait_date > max_date,
+                extrapolated=wait_date > max_date,
             )
         )
     return vaccinated + dose_2_wait

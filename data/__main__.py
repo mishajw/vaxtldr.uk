@@ -65,13 +65,17 @@ def main():
     latest = latest.sort_values(by="dose", ascending=False)
     latest.to_csv(OUTPUT_LATEST_DATA)
 
-    line = df.groupby(["dose", "real_date", "extrapolated"]).sum().reset_index()
+    line = df[~df["extrapolated"]]
+    line = line.groupby(["dose", "real_date"]).sum().reset_index()
     line["group"] = "all"
     line = add_population(line)
     line["vaccinated"] = line[["vaccinated", "population"]].min(axis=1)
-    line = line.sort_values(by="dose", ascending=False)
     line = line.sort_values(by="real_date")
     line.to_csv(OUTPUT_LINE_DATA)
+    line["perc"] = line["vaccinated"] / line["population"]
+    sns.lineplot(data=line, x="real_date", y="perc", hue="dose")
+    plt.xticks(rotation=90)
+    st.pyplot()
 
     st.write(df)
     st.write(latest)

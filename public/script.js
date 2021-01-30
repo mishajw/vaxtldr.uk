@@ -1,10 +1,13 @@
+var DOSES = ["2_wait", "2", "1"];
 var DOSE_COLORS = {
-    "1": "rgb(255, 205, 86)",
+    "2_wait": "rgb(0, 0, 255)",
     "2": "rgb(75, 192, 192)",
+    "1": "rgb(255, 205, 86)",
 };
 var DOSE_LABELS = {
-    "1": "1st dose",
+    "2_wait": "2nd dose + 2 weeks",
     "2": "2nd dose",
+    "1": "1st dose",
 };
 
 function start() {
@@ -13,7 +16,6 @@ function start() {
 }
 
 function initializeBarCharts(csv) {
-//    var groups = csv.map(function (row) { return row.group; }).filter(distinct);
     var annotation = {
         drawTime: "afterDatasetsDraw",
         annotations: [{
@@ -43,8 +45,7 @@ function initializeBarCharts(csv) {
 }
 
 function makeBarChart(id, title, csv, annotation) {
-    var doses = csv.map(function (row) { return row.dose; }).filter(distinct);
-    var vaccinated_per_dose = doses.map(function(dose) {
+    var vaccinated_per_dose = DOSES.map(function(dose) {
         // TODO: Unnest function.
         var vaccinated = csv
             .filter(function(row) { return row.dose == dose; })
@@ -110,19 +111,17 @@ function makeBarChart(id, title, csv, annotation) {
 }
 
 function initializeLineChart(csv) {
-    csv = csv.filter(function (row) { return row.extrapolated == "False"; });
-    var doses = csv.map(function (row) { return row.dose; }).filter(distinct);
     var dates = csv
         .map(function (row) { return row.real_date; })
         .filter(distinct);
-    var datasets = doses.map(function (dose) {
+    var datasets = DOSES.map(function (dose) {
         var vaccinated = csv
             .filter(function(row) { return row.dose == dose; })
             .map(function(row) {
                 var vaccinated = parseInt(row.vaccinated);
                 var population = parseFloat(row.population);
                 return {
-                    t: Date.parse(row.real_date),
+                    x: row.real_date,
                     y: (vaccinated / population) * 100,
                     vaccinated: vaccinated,
                     population: population,
@@ -160,6 +159,10 @@ function initializeLineChart(csv) {
                 }
             },
             scales: {
+                xAxes: [{
+                    id: "x",
+                    type: "time",
+                }],
                 yAxes: [{
                     id: "y",
                     ticks: {
