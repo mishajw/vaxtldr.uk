@@ -140,7 +140,7 @@ def add_dose_2_wait(vaccinated: List[Vaccinated]) -> List[Vaccinated]:
     for v in vaccinated:
         if v.slice.dose != "2":
             continue
-        wait_date = v.source.real_date + timedelta(weeks=2)
+        wait_date = v.source.real_date + timedelta(days=7)
         dose_2_wait.append(
             replace(
                 v,

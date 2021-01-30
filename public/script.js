@@ -1,3 +1,7 @@
+var SUPERSCRIPT_1 = "\u00B9";
+var SUPERSCRIPT_2 = "\u00B2";
+var SUPERSCRIPT_3 = "\u00B3";
+
 var DOSES = ["2_wait", "2", "1"];
 var DOSE_COLORS = {
     "2_wait": "#205072",
@@ -5,7 +9,7 @@ var DOSE_COLORS = {
     "1": "#CFF4D2",
 };
 var DOSE_LABELS = {
-    "2_wait": "2nd dose + 2 weeks",
+    "2_wait": "2nd dose + 7d" + SUPERSCRIPT_1,
     "2": "2nd dose",
     "1": "1st dose",
 };
@@ -26,7 +30,7 @@ function initializeBarCharts(csv) {
             borderColor: "#FFD700",
             borderWidth: 2,
             label: {
-                content: "Herd immunity\u00B9",
+                content: "Herd immunity" + SUPERSCRIPT_2,
                 enabled: true,
                 xAdjust: 55,
             }
@@ -39,7 +43,7 @@ function initializeBarCharts(csv) {
         annotation);
     makeBarChart(
         "bar-over-80",
-        "Percent of >80s\u00B2 vaccinated",
+        "Percent of >80s" + SUPERSCRIPT_3 + " vaccinated",
         csv.filter(function (row) { return row.group == ">=80"; }),
         {});
 }
