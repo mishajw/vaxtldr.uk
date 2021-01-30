@@ -13,6 +13,7 @@ from data.population import add_population
 
 OUTPUT_LATEST_DATA = Path("public/latest.csv")
 OUTPUT_LINE_DATA = Path("public/line.csv")
+OUTPUT_FRESHNESS = Path("public/freshness.txt")
 
 
 def main():
@@ -47,9 +48,10 @@ def main():
     df = df.drop("slice", axis=1)
 
     latest_underlying = df[~df["extrapolated"]]
+    latest_date = latest_underlying["real_date"].max()
     latest_over_80 = (
         latest_underlying[
-            (latest_underlying["real_date"] == latest_underlying["real_date"].max())
+            (latest_underlying["real_date"] == latest_date)
             & (latest_underlying["group"] == ">=80")
         ]
         .groupby("dose")
@@ -57,7 +59,7 @@ def main():
         .reset_index()
     )
     latest_all_groups = (
-        latest_underlying[(latest_underlying["real_date"] == latest_underlying["real_date"].max())]
+        latest_underlying[(latest_underlying["real_date"] == latest_date)]
         .groupby("dose")
         .sum("vaccinated")
         .reset_index()
@@ -69,6 +71,10 @@ def main():
     latest = latest.sort_values(by="group", ascending=False)
     latest = latest.sort_values(by="dose", ascending=False)
     latest.to_csv(OUTPUT_LATEST_DATA)
+
+    today = date.today()
+    latest = max(v.source.real_date for v in vaccinated if not v.extrapolated)
+    OUTPUT_FRESHNESS.write_text(today.strftime("%Y-%m-%d") + " " + latest.strftime("%Y-%m-%d"))
 
     line = df.groupby(["dose", "real_date", "extrapolated"]).sum().reset_index()
     line["group"] = "all"

@@ -17,6 +17,7 @@ var DOSE_LABELS = {
 function start() {
     d3.csv("latest.csv").then(initializeBarCharts);
     d3.csv("line.csv").then(initializeLineCharts);
+    setLatestData();
 }
 
 function initializeBarCharts(csv) {
@@ -164,6 +165,23 @@ function makeLineChart(id, title, csv, annotation) {
             annotation: annotation,
         },
     });
+}
+
+function setLatestData() {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState != 4 || this.status != 200) {
+            return;
+        }
+        var split = xhttp.responseText.split(" ");
+        var runDate = new Date(split[0]);
+        var dataDate = new Date(split[1]);
+        document.getElementById("freshness").innerHTML =
+            "Last updated on " + runDate.toLocaleDateString('en-GB') + ", "
+            + " with data from " + dataDate.toLocaleDateString('en-GB') +  ".";
+    };
+    xhttp.open("GET", "freshness.txt", true);
+    xhttp.send();
 }
 
 function distinct(value, index, self) {
