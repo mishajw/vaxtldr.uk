@@ -46,6 +46,7 @@ def main():
     df["location"] = df["slice"].apply(lambda s: s["location"])
     df = df.drop("source", axis=1)
     df = df.drop("slice", axis=1)
+    df["vaccinated"] = df["vaccinated"].astype(int)
 
     latest_underlying = df[~df["extrapolated"]]
     latest_date = latest_underlying["real_date"].max()
