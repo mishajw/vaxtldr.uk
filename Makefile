@@ -1,4 +1,5 @@
 PYTHON=.env/bin/python
+PIP=.env/bin/pip
 STREAMLIT=.env/bin/streamlit
 REQUIREMENTS=data/requirements.txt
 
@@ -16,4 +17,4 @@ server:
 
 $(PYTHON): $(REQUIREMENTS)
 	python -m venv .env
-	pip install -r $(REQUIREMENTS)
+	$(PIP) install -r $(REQUIREMENTS)
