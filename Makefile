@@ -7,6 +7,12 @@ REQUIREMENTS=data/requirements.txt
 data: $(PYTHON)
 	$(PYTHON) -m data
 
+.PHONY: commit-data
+commit-data: data
+	git commit \
+		--only public/*.{csv,txt} \
+		--message "Update data."
+
 .PHONY: data-st
 data-st: $(PYTHON)
 	$(STREAMLIT) run run_streamlit.py
@@ -18,3 +24,4 @@ server:
 $(PYTHON): $(REQUIREMENTS)
 	python -m venv .env
 	$(PIP) install -r $(REQUIREMENTS)
+
