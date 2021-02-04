@@ -17,7 +17,7 @@ OUTPUT_FRESHNESS = Path("public/freshness.txt")
 
 
 def main():
-    st.header("vaxxtldr data fetching")
+    st.header("vaxtldr data fetching")
 
     data_sources = get_data_sources()
 

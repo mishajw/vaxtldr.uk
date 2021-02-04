@@ -15,7 +15,7 @@ __URL_REGEX = re.compile(
     r"/\d/\d{4}/\d{2}/"
     r"COVID-19-([Dd]aily|weekly|total)-announced-vaccinations-(\d+-[a-zA-Z]+-\d+)(-\d+)?.xlsx"
 )
-__CACHE_DIR = Path("/tmp/vaxxtldr")
+__CACHE_DIR = Path("/tmp/vaxtldr")
 __DATES_WITH_2ND_SHEET = {
     date(2021, 1, 12),
     date(2021, 1, 13),
