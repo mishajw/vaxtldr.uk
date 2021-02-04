@@ -26,7 +26,7 @@ function start() {
 function initializeBarCharts(csv) {
     makeBarChart(
         "bar-all",
-        "Percent of UK vaccinated",
+        "Percent of England vaccinated",
         csv.filter(function(row) {
             return row.group == "all";
         }),
@@ -129,7 +129,7 @@ function initializeLineCharts(csv) {
     });
     makeLineChart(
         "line",
-        "UK vaccinated over time",
+        "England vaccinated over time",
         csvNotExtrapolated,
         [
             governmentTargetAnnotation("horizontal", "y", true),
@@ -146,7 +146,7 @@ function initializeLineCharts(csv) {
         true);
     makeLineChart(
         "line-extrapolated",
-        "Predicting UK vaccinations",
+        "Predicting England vaccinations",
         csv,
         [
             herdImmunityAnnotation("horizontal", "y", false),
