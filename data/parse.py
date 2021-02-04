@@ -94,8 +94,15 @@ def __parse_df_weekly(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated]:
         elif len(data) == 7:
             # Data includes percentage of >=80s, ignore it.
             u80_dose_1, o80_dose_1, _, u80_dose_2, o80_dose_2, __, cumulative = data
+        elif len(data) == 7 * 2 + 1:
+            u80_dose_1 = sum(data[0:3])
+            o80_dose_1 = data[3]
+            u80_dose_2 = sum(data[7 : 7 + 3])
+            o80_dose_2 = data[7 + 3]
+            cumulative = data[7 + 7]
+            print(u80_dose_1, o80_dose_1, u80_dose_2, o80_dose_2, cumulative, sep="\t")
         else:
-            raise AssertionError(data)
+            raise AssertionError(source, data)
         if location == "Total":
             location = "all"
         yield Vaccinated(source, u80_dose_1, Slice(group="<80", location=location, dose="1"))
