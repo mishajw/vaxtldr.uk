@@ -1,0 +1,33 @@
+name: Update data
+on:
+  push:
+  schedule:
+    - cron: '0 */6 * * *'
+
+jobs:
+  run:
+    name: Update data
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install Python dependencies
+        uses: py-actions/py-dependency-install@v2
+        with:
+          path: 'data/requirements.txt'
+
+      - name: Update data
+        run: python -m data
+
+      - name: Commit changes
+        uses: EndBug/add-and-commit@v7
+        with:
+          message: 'Update data.'
+          add: '["*.txt", "*.csv"]'
+          cwd: './public'
