@@ -100,7 +100,6 @@ def __parse_df_weekly(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated]:
             u80_dose_2 = sum(data[7 : 7 + 3])
             o80_dose_2 = data[7 + 3]
             cumulative = data[7 + 7]
-            print(u80_dose_1, o80_dose_1, u80_dose_2, o80_dose_2, cumulative, sep="\t")
         else:
             raise AssertionError(source, data)
         if location == "Total":
