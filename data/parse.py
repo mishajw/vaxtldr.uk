@@ -25,7 +25,7 @@ def parse(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated]:
 
     if source.period == "daily":
         if source.data_date >= date(2021, 1, 18):
-            return __parse_df_from_2020_01_18(source, df)
+            return __parse_df_from_2021_01_18(source, df)
         else:
             return __parse_df_earliest(source, df)
     elif source.period == "weekly":
@@ -34,7 +34,7 @@ def parse(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated]:
         raise AssertionError()
 
 
-def __parse_df_from_2020_01_18(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated]:
+def __parse_df_from_2021_01_18(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated]:
     df = df.drop("Unnamed: 0", axis=1)
     df_iterrows = df.iterrows()
 
