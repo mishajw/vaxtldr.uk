@@ -2,7 +2,9 @@ name: Update data
 on:
   push:
   schedule:
-    - cron: '0 */6 * * *'
+    # Data comes out ~4pm GMT, which is 8am PDT.
+    # Run 4 times, an hour apart, starting at 3pm GMT.
+    - cron: '0 7-11 * * *'
 
 jobs:
   run:
