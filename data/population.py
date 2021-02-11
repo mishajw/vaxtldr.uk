@@ -1,13 +1,13 @@
 import pandas as pd
 
-# Source: https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/populationprojections/datasets/tablea21principalprojectionukpopulationinagegroups
-__UK_OVER_80_FRACTION = 3497000 / (3497000 + 64094000)
 # Source: https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/populationestimates/bulletins/annualmidyearpopulationestimates/mid2019estimates#population-growth-in-england-wales-scotland-and-northern-ireland
-__ENGLAND_POPULATION = 56286961
+__ENGLAND_POPULATION = 56_286_961
+# Source: https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2021/02/COVID-19-weekly-announced-vaccinations-11-February-2021.xlsx
+__ENGLAND_OVER_80_POPULATION = 2_836_964
 
 __POPULATION_BY_GROUP = {
-    "<80": int(__ENGLAND_POPULATION * (1 - __UK_OVER_80_FRACTION)),
-    ">=80": int(__ENGLAND_POPULATION * __UK_OVER_80_FRACTION),
+    "<80": __ENGLAND_POPULATION - __ENGLAND_OVER_80_POPULATION,
+    ">=80": __ENGLAND_OVER_80_POPULATION,
     "all": __ENGLAND_POPULATION,
 }
 
