@@ -143,7 +143,7 @@ function initializeLineCharts(csv) {
                 borderWidth: 2,
             }
         ],
-        true);
+        false);
     makeLineChart(
         "line-extrapolated",
         "Predicting England vaccinations",
