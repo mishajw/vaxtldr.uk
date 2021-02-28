@@ -22,7 +22,9 @@ def main():
     data_sources = get_data_sources()
 
     st.write("Parsing vaccinated")
-    vaccinated_by_source = {source: list(parse(source, get_sheet(source))) for source in data_sources}
+    vaccinated_by_source = {
+        source: list(parse(source, get_sheet(source))) for source in data_sources
+    }
     for source, vaccinated in vaccinated_by_source.items():
         assert len(vaccinated) > 0, f"Data source didn't return any data: {source}"
     vaccinated = [v for vs in vaccinated_by_source.values() for v in vs]
