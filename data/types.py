@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import date
 
 
-@dataclass
+@dataclass(frozen=True)
 class Source:
     url: str
     data_date: date

@@ -22,9 +22,10 @@ def main():
     data_sources = get_data_sources()
 
     st.write("Parsing vaccinated")
-    vaccinated_per_source = [list(parse(source, get_sheet(source))) for source in data_sources]
-    assert all(len(vs) > 0 for vs in vaccinated_per_source), "All datasources must return some data"
-    vaccinated = [v for vs in vaccinated_per_source for v in vs]
+    vaccinated_by_source = {source: list(parse(source, get_sheet(source))) for source in data_sources}
+    for source, vaccinated in vaccinated_by_source.items():
+        assert len(vaccinated) > 0, f"Data source didn't return any data: {source}"
+    vaccinated = [v for vs in vaccinated_by_source.values() for v in vs]
     st.write("Deaggregating")
     vaccinated = inference.add_deaggregates(vaccinated)
     vaccinated = list(inference.remove_aggregates(vaccinated))
