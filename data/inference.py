@@ -4,7 +4,7 @@ from typing import Iterable, List
 
 import numpy as np
 
-from data.types import Source, Vaccinated
+from data.types import Source, Vaccinated, Dose
 
 __SLICE_DIMS = ["dose", "group", "location"]
 __FIRST_DAILY_DATA = date(2021, 1, 9)
@@ -19,16 +19,16 @@ def add_deaggregates(vaccinated: List[Vaccinated]) -> List[Vaccinated]:
         for real_date in {v.source.real_date for v in vaccinated_daily}:
             vaccinated_on_date = [v for v in vaccinated_daily if v.source.real_date == real_date]
 
-            aggregates = [v for v in vaccinated_on_date if getattr(v.slice, dim) == "all"]
+            aggregates = [v for v in vaccinated_on_date if getattr(v.slice, dim).is_all()]
 
             for aggregate in aggregates:
                 unaggregates = [
                     v
                     for v in vaccinated_on_date
-                    if getattr(v.slice, dim) != "all"
+                    if not getattr(v.slice, dim).is_all()
                     and all(
                         getattr(v.slice, other_dim) == getattr(aggregate.slice, other_dim)
-                        and getattr(v.slice, other_dim) != "all"
+                        and not getattr(v.slice, other_dim).is_all()
                         for other_dim in other_dims
                     )
                     and v.slice.group == aggregate.slice.group
@@ -48,9 +48,9 @@ def add_deaggregates(vaccinated: List[Vaccinated]) -> List[Vaccinated]:
 
 def remove_aggregates(vaccinated: List[Vaccinated]) -> Iterable[Vaccinated]:
     for v in vaccinated:
-        if v.slice.group == "all" or v.slice.dose == "all":
+        if v.slice.group.is_all() or v.slice.dose.is_all():
             continue
-        if v.slice.location != "all":
+        if not v.slice.location.is_all():
             # TODO: Verify that we can remove deagg'd location data.
             continue
         if v.source.real_date >= __FIRST_DAILY_DATA and v.source.period == "weekly":
@@ -60,19 +60,19 @@ def remove_aggregates(vaccinated: List[Vaccinated]) -> Iterable[Vaccinated]:
 
 def make_non_cumulative(vaccinated: List[Vaccinated]) -> Iterable[Vaccinated]:
     slices = {v.slice for v in vaccinated}
-    for slice in slices:
-        vs = [v for v in vaccinated if v.slice == slice]
+    for slice_ in slices:
+        vs = [v for v in vaccinated if v.slice == slice_]
         vs = sorted(vs, key=lambda v: v.source.real_date)
         yield vs[0]
         for v1, v2 in zip(vs, vs[1:]):
-            # assert v1.vaccinated <= v2.vaccinated, slice
+            # assert v1.vaccinated <= v2.vaccinated, slice_
             yield replace(v2, vaccinated=v2.vaccinated - v1.vaccinated)
 
 
 def make_cumulative(vaccinated: List[Vaccinated]) -> Iterable[Vaccinated]:
     slices = {v.slice for v in vaccinated}
-    for slice in slices:
-        vs = [v for v in vaccinated if v.slice == slice]
+    for slice_ in slices:
+        vs = [v for v in vaccinated if v.slice == slice_]
         vs = sorted(vs, key=lambda v: v.source.real_date)
         cumulative = 0
         for v in vs:
@@ -84,12 +84,12 @@ def add_extrapolations(vaccinated: List[Vaccinated]) -> List[Vaccinated]:
     max_date = max(v.source.real_date for v in vaccinated)
 
     predictions = []
-    for slice in {v.slice for v in vaccinated}:
+    for slice_ in {v.slice for v in vaccinated}:
         array = np.array(
             [
                 [(v.source.real_date - max_date).days, v.vaccinated]
                 for v in vaccinated
-                if v.slice == slice and v.source.real_date > max_date - timedelta(days=7)
+                if v.slice == slice_ and v.source.real_date > max_date - timedelta(days=7)
             ]
         )
         if len(array) <= 1:
@@ -101,7 +101,7 @@ def add_extrapolations(vaccinated: List[Vaccinated]) -> List[Vaccinated]:
                 Vaccinated(
                     Source("prediction", data_date=real_date, real_date=real_date, period="daily"),
                     vaccinated=m * plus_weeks * 7 + b,
-                    slice=slice,
+                    slice=slice_,
                     extrapolated=True,
                 )
             )
@@ -112,12 +112,12 @@ def add_12w_dose_lag(vaccinated: List[Vaccinated]) -> List[Vaccinated]:
     dose1s_by_date_slice = {
         (v.source.real_date, v.slice.location, v.slice.group): v.vaccinated
         for v in vaccinated
-        if v.slice.dose == "1"
+        if v.slice.dose == Dose.DOSE_1
     }
 
     new_vaccinated = []
     for v in vaccinated:
-        if v.slice.dose != "2":
+        if v.slice.dose != Dose.DOSE_2:
             new_vaccinated.append(v)
             continue
         dose2 = v
@@ -138,13 +138,13 @@ def add_dose_2_wait(vaccinated: List[Vaccinated]) -> List[Vaccinated]:
     max_date = max(v.source.real_date for v in vaccinated if not v.extrapolated)
     dose_2_wait = []
     for v in vaccinated:
-        if v.slice.dose != "2":
+        if v.slice.dose != Dose.DOSE_2:
             continue
         wait_date = v.source.real_date + timedelta(days=7)
         dose_2_wait.append(
             replace(
                 v,
-                slice=replace(v.slice, dose="2_wait"),
+                slice=replace(v.slice, dose=Dose.DOSE_2_PLUS_WAIT),
                 source=replace(v.source, real_date=wait_date),
                 extrapolated=wait_date > max_date,
             )
@@ -161,7 +161,7 @@ def deaggregate_with_interpolation(
         v
         for v in vaccinated
         if v.source.period == "weekly"
-        if getattr(v.slice, dim) != "all"
+        if not getattr(v.slice, dim).is_all()
         and all(
             getattr(v.slice, other_dim) == getattr(aggregate.slice, other_dim)
             for other_dim in other_dims

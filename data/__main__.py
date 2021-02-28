@@ -10,6 +10,7 @@ from data import inference
 from data.nhs_crawler import get_data_sources, get_sheet
 from data.parse import parse
 from data.population import add_population
+from data.types import OVER_80S, Group, Location
 
 OUTPUT_LATEST_DATA = Path("public/latest.csv")
 OUTPUT_LINE_DATA = Path("public/line.csv")
@@ -46,9 +47,9 @@ def main():
     # Move field to top level.
     df["data_date"] = df["source"].apply(lambda s: s["data_date"])
     df["real_date"] = df["source"].apply(lambda s: s["real_date"])
-    df["dose"] = df["slice"].apply(lambda s: s["dose"])
-    df["group"] = df["slice"].apply(lambda s: s["group"])
-    df["location"] = df["slice"].apply(lambda s: s["location"])
+    df["dose"] = df["slice"].apply(lambda s: s["dose"].csv_str())
+    df["group"] = df["slice"].apply(lambda s: Group(**s["group"]).csv_str())
+    df["location"] = df["slice"].apply(lambda s: Location(**s["location"]).csv_str())
     df = df.drop("source", axis=1)
     df = df.drop("slice", axis=1)
     df["vaccinated"] = df["vaccinated"].astype(int)

@@ -1,29 +1,30 @@
 import math
 from collections import defaultdict
 from datetime import date
-from typing import Iterable, DefaultDict
+from typing import DefaultDict
+from typing import Iterable
 
 import numpy as np
 import pandas as pd
 
-from data.types import Source, Vaccinated, Slice
+from data.types import Source, Vaccinated, Slice, UNDER_80S, OVER_80S, Dose, ALL_LOCATIONS, Location
 
 
 def parse(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated]:
     # Data overrides. Some data formats are only used once, and not worth writing parsers for.
     if source.data_date == date(2021, 1, 7) and source.period == "weekly":
         return [
-            Vaccinated(source, 438075, Slice("1", "<80", "all")),
-            Vaccinated(source, 13567, Slice("2", "<80", "all")),
-            Vaccinated(source, 654810, Slice("1", ">=80", "all")),
-            Vaccinated(source, 6414, Slice("2", ">=80", "all")),
+            Vaccinated(source, 438075, Slice(Dose.DOSE_1, UNDER_80S, ALL_LOCATIONS)),
+            Vaccinated(source, 13567, Slice(Dose.DOSE_2, UNDER_80S, ALL_LOCATIONS)),
+            Vaccinated(source, 654810, Slice(Dose.DOSE_1, OVER_80S, ALL_LOCATIONS)),
+            Vaccinated(source, 6414, Slice(Dose.DOSE_2, OVER_80S, ALL_LOCATIONS)),
         ]
     elif source.data_date == date(2020, 12, 31) and source.period == "weekly":
         return [
-            Vaccinated(source, 261561, Slice("1", "<80", "all")),
-            Vaccinated(source, 0, Slice("2", "<80", "all")),
-            Vaccinated(source, 524439, Slice("1", ">=80", "all")),
-            Vaccinated(source, 0, Slice("2", ">=80", "all")),
+            Vaccinated(source, 261561, Slice(Dose.DOSE_1, UNDER_80S, ALL_LOCATIONS)),
+            Vaccinated(source, 0, Slice(Dose.DOSE_2, UNDER_80S, ALL_LOCATIONS)),
+            Vaccinated(source, 524439, Slice(Dose.DOSE_1, OVER_80S, ALL_LOCATIONS)),
+            Vaccinated(source, 0, Slice(Dose.DOSE_2, OVER_80S, ALL_LOCATIONS)),
         ]
 
     if source.period == "daily":
@@ -54,10 +55,12 @@ def __parse_df_from_2021_01_18(source: Source, df: pd.DataFrame) -> Iterable[Vac
             break
         dose_1, dose_2, cumulative = filter(lambda d: not math.isnan(d), data)
         if location == "Total":
-            location = "all"
-        yield Vaccinated(source, dose_1, Slice(location=location, dose="1"))
-        yield Vaccinated(source, dose_2, Slice(location=location, dose="2"))
-        yield Vaccinated(source, cumulative, Slice(location=location, dose="all"))
+            location = ALL_LOCATIONS
+        else:
+            location = Location(location)
+        yield Vaccinated(source, dose_1, Slice(location=location, dose=Dose.DOSE_1))
+        yield Vaccinated(source, dose_2, Slice(location=location, dose=Dose.DOSE_2))
+        yield Vaccinated(source, cumulative, Slice(location=location, dose=Dose.ALL))
 
 
 def __parse_df_earliest(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated]:
@@ -65,11 +68,11 @@ def __parse_df_earliest(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated
     for row in df.iterrows():
         _, (title, *data) = row
         if type(title) == str and " to " in title and len(title.split()) == 7:
-            dose = "all"
+            dose = Dose.ALL
         elif type(title) == str and title.strip().lower() == "of which, 1st dose":
-            dose = "1"
+            dose = Dose.DOSE_1
         elif type(title) == str and title.strip().lower() == "of which, 2nd dose":
-            dose = "2"
+            dose = Dose.DOSE_2
         else:
             continue
         vaccinated = data[1]
@@ -118,16 +121,28 @@ def __parse_df_weekly(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated]:
             location = a[y, 0]
             vaccinated = a[y, x]
 
+            if "population estimates" in dose.lower():
+                # Ignore population estimates.
+                continue
+
             if dose == "1st dose":
-                dose = "1"
-            if dose == "2nd dose":
-                dose = "2"
-            if group == "80+":
-                group = ">=80"
+                dose = Dose.DOSE_1
+            elif dose == "2nd dose":
+                dose = Dose.DOSE_2
+            elif dose == "Cumulative Total Doses to Date":
+                dose = Dose.ALL
             else:
-                group = "<80"
+                raise AssertionError(f"Unexpected dose {dose} in source {source}")
+
+            if group == "80+":
+                group = OVER_80S
+            else:
+                group = UNDER_80S
+
             if location == "Total":
-                location = "all"
+                location = ALL_LOCATIONS
+            else:
+                location = Location(location)
 
             vaccinated_by_slice[Slice(dose, group, location)] += vaccinated
 
