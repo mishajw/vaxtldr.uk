@@ -1,8 +1,11 @@
 import math
+from collections import defaultdict
 from datetime import date
-from typing import Iterable
+from typing import Iterable, DefaultDict
 
+import numpy as np
 import pandas as pd
+
 from data.types import Source, Vaccinated, Slice
 
 
@@ -74,44 +77,59 @@ def __parse_df_earliest(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated
 
 
 def __parse_df_weekly(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated]:
-    df = df.drop("Unnamed: 0", axis=1)
-    df_iterrows = df.iterrows()
+    def is_start(cell) -> bool:
+        return type(cell) == str and (
+            cell.lower() == "region of residence" or cell.lower() == "nhs region of residence"
+        )
 
-    for row in df_iterrows:
-        _, (title, *data) = row
-        if type(title) == str and title.lower() == "region of residence":
-            break
+    def is_end(cell) -> bool:
+        return type(cell) == str and cell.lower() == "data quality notes:"
 
-    for row in df_iterrows:
-        _, (location, *data) = row
-        if type(location) == float and math.isnan(location):
-            continue
-        if location == "Data quality notes:":
-            break
-        data = list(filter(lambda d: not math.isnan(d), data))
-        if len(data) == 5:
-            u80_dose_1, o80_dose_1, u80_dose_2, o80_dose_2, cumulative = data
-        elif len(data) == 7:
-            # Data includes percentage of >=80s, ignore it.
-            u80_dose_1, o80_dose_1, _, u80_dose_2, o80_dose_2, __, cumulative = data
-        elif len(data) == 7 * 2 + 1:
-            u80_dose_1 = sum(data[0:3])
-            o80_dose_1 = data[3]
-            u80_dose_2 = sum(data[7 : 7 + 3])
-            o80_dose_2 = data[7 + 3]
-            cumulative = data[7 + 7]
-        elif len(data) == 4 * 3 + 1 or len(data) == 4 * 2 + 1:
-            u80_dose_1 = sum(data[0:3])
-            o80_dose_1 = data[3]
-            u80_dose_2 = sum(data[4 : 4 + 3])
-            o80_dose_2 = data[4 + 3]
-            cumulative = data[4 + 4]
-        else:
-            raise AssertionError(source, data)
-        if location == "Total":
-            location = "all"
-        yield Vaccinated(source, u80_dose_1, Slice(group="<80", location=location, dose="1"))
-        yield Vaccinated(source, o80_dose_1, Slice(group=">=80", location=location, dose="1"))
-        yield Vaccinated(source, u80_dose_2, Slice(group="<80", location=location, dose="2"))
-        yield Vaccinated(source, o80_dose_2, Slice(group=">=80", location=location, dose="2"))
-        yield Vaccinated(source, cumulative, Slice(location=location, dose="all"))
+    def is_nan(cell) -> bool:
+        return type(cell) == float and math.isnan(cell)
+
+    a = df.to_numpy()
+
+    # Trim.
+    (start_y,), (start_x,) = np.where(np.vectorize(is_start)(a))
+    (end_y,), (_,) = np.where(np.vectorize(is_end)(a))
+    a = a[start_y:end_y, start_x:]
+
+    # Remove NaNs.
+    is_nans = np.vectorize(is_nan)(a)
+    a = a[:, ~np.all(is_nans, axis=0)]
+    a = a[~np.all(is_nans, axis=1), :]
+
+    # Fill in dose row.
+    filled_in_doses = []
+    current_dose = None
+    for population in a[0, 1:]:
+        if not is_nan(population):
+            current_dose = population
+        filled_in_doses.append(current_dose)
+    a[0, 1:] = filled_in_doses
+
+    vaccinated_by_slice: DefaultDict[Slice, int] = defaultdict(int)
+
+    for y in range(2, a.shape[0]):
+        for x in range(1, a.shape[1]):
+            dose = a[0, x]
+            group = a[1, x]
+            location = a[y, 0]
+            vaccinated = a[y, x]
+
+            if dose == "1st dose":
+                dose = "1"
+            if dose == "2nd dose":
+                dose = "2"
+            if group == "80+":
+                group = ">=80"
+            else:
+                group = "<80"
+            if location == "Total":
+                location = "all"
+
+            vaccinated_by_slice[Slice(dose, group, location)] += vaccinated
+
+    for slice_, vaccinated in vaccinated_by_slice.items():
+        yield Vaccinated(source, vaccinated, slice_)
