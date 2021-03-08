@@ -124,6 +124,9 @@ def __parse_df_weekly(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated]:
             if "population estimates" in dose.lower():
                 # Ignore population estimates.
                 continue
+            if "% who have had at least 1 dose" in dose.lower():
+                # Ignore precalculated %
+                continue
 
             if dose == "1st dose":
                 dose = Dose.DOSE_1
