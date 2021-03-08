@@ -16,11 +16,14 @@ __URL_REGEX = re.compile(
     r"COVID-19-([Dd]aily|weekly|total)-announced-vaccinations-(\d+-[a-zA-Z]+-\d+)(-\d+)?.xlsx"
 )
 __CACHE_DIR = Path("/tmp/vaxtldr")
-__DATES_WITH_2ND_SHEET = {
+__DAILY_DATES_WITH_2ND_SHEET = {
     date(2021, 1, 12),
     date(2021, 1, 13),
     date(2021, 1, 14),
     date(2021, 1, 16),
+}
+__WEEKLY_DATES_WITH_3RD_SHEET = {
+    date(2021, 3, 4)
 }
 
 
@@ -58,8 +61,10 @@ def get_sheet(source: Source) -> pd.DataFrame:
         sheet_data = cache_file.read_bytes()
 
     sheet_number = 0
-    if source.data_date in __DATES_WITH_2ND_SHEET:
+    if source.period == "daily" and source.data_date in __DAILY_DATES_WITH_2ND_SHEET:
         sheet_number = 1
-    if source.period == "weekly":
+    elif source.period == "weekly" and source.data_date in __WEEKLY_DATES_WITH_3RD_SHEET:
+        sheet_number = 2
+    elif source.period == "weekly":
         sheet_number = 1
     return pd.read_excel(sheet_data, sheet_name=sheet_number)
