@@ -22,9 +22,8 @@ __DAILY_DATES_WITH_2ND_SHEET = {
     date(2021, 1, 14),
     date(2021, 1, 16),
 }
-__WEEKLY_DATES_WITH_3RD_SHEET = {
-    date(2021, 3, 4)
-}
+# TODO: This should probably work for all future weekly dates.
+__WEEKLY_DATES_WITH_3RD_SHEET = {date(2021, 3, 4), date(2021, 3, 11)}
 
 
 def get_data_sources() -> Iterable[Source]:
