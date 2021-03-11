@@ -202,6 +202,8 @@ def deaggregate_with_interpolation(
 
         ratio_delta_per_day = (ratio1 - ratio0) / (dates[1] - dates[0]).days
         ratio = ratio0 + ratio_delta_per_day * (aggregate.source.data_date - dates[0]).days
+        if dates[1] < aggregate.source.real_date:
+            ratio = ratio1
         yield Vaccinated(
             source=aggregate.source,
             vaccinated=int(aggregate.vaccinated * ratio),
