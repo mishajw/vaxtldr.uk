@@ -15,8 +15,8 @@ var DOSE_LABELS = {
     "1": "1st dose",
 };
 var GROUPS = ["<59", "60-64", "65-69", "70-74", "75-79", ">=80"].reverse();
-var GOVERNMENT_TARGET_NUM = 13_900_000;
-var GOVERNMENT_TARGET_PERCENT = GOVERNMENT_TARGET_NUM / (64094000 + 3497000);
+var GOVERNMENT_TARGET_NUM = 21_043_663;
+var GOVERNMENT_TARGET_PERCENT = GOVERNMENT_TARGET_NUM / 56_286_961;
 
 function start() {
     d3.csv("latest.csv").then(initializeBarCharts);
@@ -149,12 +149,12 @@ function initializeLineCharts(csv) {
                 scaleID: "x",
                 type: "line",
                 display: true,
-                value: '2021-02-15',
+                value: '2021-04-15',
                 borderColor: "#D5212E",
                 borderWidth: 2,
             }
         ],
-        false);
+        true);
     makeLineChart(
         "line-extrapolated",
         "Predicting England vaccinations",
@@ -230,7 +230,7 @@ function makeLineChart(id, title, csv, annotations, limit) {
                     id: "x",
                     type: "time",
                     time: {
-                        max: limit ? '2021-02-17' : undefined,
+                        max: limit ? '2021-04-20' : undefined,
                     }
                 }],
                 yAxes: [{
@@ -311,7 +311,7 @@ function governmentTargetAnnotation(mode, scaleId, adjust) {
         borderColor: "#D5212E",
         borderWidth: 2,
         label: {
-            content: "Mid-Feb target" + SUPERSCRIPT_2,
+            content: "April 15th target" + SUPERSCRIPT_2,
             enabled: true,
             xAdjust: adjust ? 53 : 0,
         }
