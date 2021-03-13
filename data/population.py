@@ -1,17 +1,39 @@
+from typing import Dict
+
 import pandas as pd
 
-# Source: https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/populationestimates/bulletins/annualmidyearpopulationestimates/mid2019estimates#population-growth-in-england-wales-scotland-and-northern-ireland
-__ENGLAND_POPULATION = 56_286_961
-# Source: https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2021/02/COVID-19-weekly-announced-vaccinations-11-February-2021.xlsx
-__ENGLAND_OVER_80_POPULATION = 2_836_964
-
-__POPULATION_BY_GROUP = {
-    "<80": __ENGLAND_POPULATION - __ENGLAND_OVER_80_POPULATION,
-    ">=80": __ENGLAND_OVER_80_POPULATION,
-    "all": __ENGLAND_POPULATION,
-}
+from data.types import Group, Vaccinated, ALL_LOCATIONS
 
 
 def add_population(df: pd.DataFrame) -> pd.DataFrame:
-    df["population"] = df["group"].apply(lambda group: __POPULATION_BY_GROUP[group])
+    population_by_group = __get_population_by_group()
+    df["population"] = df["group"].apply(lambda group: population_by_group[group])
     return df
+
+
+def get_population(vaccinated: Vaccinated) -> int:
+    assert vaccinated.slice.location == ALL_LOCATIONS
+    return __get_population_by_group()[vaccinated.slice.group]
+
+
+# Source: https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2021/03/COVID-19-weekly-announced-vaccinations-11-March-2021
+def __get_population_by_group() -> Dict[Group, int]:
+    disjoint_ages = {
+        Group(0, 15): 10_816_679,
+        Group(16, 59): 32_004_731,
+        Group(60, 64): 3_111_835,
+        Group(65, 69): 2_796_740,
+        Group(70, 74): 2_779_326,
+        Group(75, 79): 1_940_686,
+        Group(80, None): 2_836_964,
+    }
+
+    cumulative_ages = dict()
+    cumulative_sum = 0
+    for group in sorted(disjoint_ages.keys(), key=lambda g: g.age_lower):
+        cumulative_sum += disjoint_ages[group]
+        if group.age_lower == 0:
+            continue
+        cumulative_ages[Group(0, group.age_upper)] = cumulative_sum
+
+    return {k.csv_str(): v for k, v in {**disjoint_ages, **cumulative_ages}.items()}

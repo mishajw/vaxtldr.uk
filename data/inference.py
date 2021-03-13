@@ -1,10 +1,10 @@
+import itertools
+from collections import defaultdict
 from dataclasses import replace
 from datetime import date, timedelta
 from typing import Iterable, List
 
-import numpy as np
-
-from data.types import Source, Vaccinated, Dose
+from data.types import Source, Vaccinated, Dose, Slice, ALL_AGES, ALL_LOCATIONS
 
 __SLICE_DIMS = ["dose", "group", "location"]
 __FIRST_DAILY_DATA = date(2021, 1, 9)
@@ -80,58 +80,69 @@ def make_cumulative(vaccinated: List[Vaccinated]) -> Iterable[Vaccinated]:
             yield replace(v, vaccinated=cumulative)
 
 
-def add_extrapolations(vaccinated: List[Vaccinated]) -> List[Vaccinated]:
-    max_date = max(v.source.real_date for v in vaccinated)
+def add_extrapolations(vaccinated: List[Vaccinated]) -> Iterable[Vaccinated]:
+    import streamlit as st
 
-    predictions = []
-    for slice_ in {v.slice for v in vaccinated}:
-        array = np.array(
-            [
-                [(v.source.real_date - max_date).days, v.vaccinated]
-                for v in vaccinated
-                if v.slice == slice_ and v.source.real_date > max_date - timedelta(days=7)
-            ]
-        )
-        if len(array) <= 1:
-            continue
-        m, b = np.polyfit(array[:, 0], array[:, 1], 1)
-        for plus_weeks in range(1, 52):
-            real_date = max_date + timedelta(weeks=plus_weeks)
-            predictions.append(
-                Vaccinated(
-                    Source("prediction", data_date=real_date, real_date=real_date, period="daily"),
-                    vaccinated=m * plus_weeks * 7 + b,
-                    slice=slice_,
-                    extrapolated=True,
-                )
-            )
-    return vaccinated + predictions
+    assert all(v.slice.location == ALL_LOCATIONS for v in vaccinated)
+    assert all(v.slice.group == ALL_AGES for v in vaccinated)
 
-
-def add_12w_dose_lag(vaccinated: List[Vaccinated]) -> List[Vaccinated]:
-    dose1s_by_date_slice = {
-        (v.source.real_date, v.slice.location, v.slice.group): v.vaccinated
-        for v in vaccinated
-        if v.slice.dose == Dose.DOSE_1
+    dose_1_vaccinations = {
+        v.source.real_date: v.vaccinated for v in vaccinated if v.slice.dose == Dose.DOSE_1
     }
+    dose_1_vaccinations_dates = list(sorted(dose_1_vaccinations.keys()))
+    dose_1_new_vaccinations = {
+        dose_1_vaccinations_dates[0]: dose_1_vaccinations[dose_1_vaccinations_dates[0]]
+    }
+    for d1, d2 in zip(dose_1_vaccinations_dates, dose_1_vaccinations_dates[1:]):
+        st.write(d1, d2, dose_1_vaccinations[d1], dose_1_vaccinations[d2])
+        dose_1_new_vaccinations[d2] = dose_1_vaccinations[d2] - dose_1_vaccinations[d1]
+    dose_1_new_vaccinations = defaultdict(int, dose_1_new_vaccinations)
+    st.write({str(k): v for k, v in dose_1_new_vaccinations.items()})
 
-    new_vaccinated = []
-    for v in vaccinated:
-        if v.slice.dose != Dose.DOSE_2:
-            new_vaccinated.append(v)
-            continue
-        dose2 = v
+    date_latest = max(v.source.real_date for v in vaccinated)
+    this_week_vaccinations = sum(
+        v.vaccinated for v in vaccinated if v.source.real_date == date_latest
+    )
+    last_week_vaccinations = sum(
+        v.vaccinated for v in vaccinated if v.source.real_date == date_latest - timedelta(weeks=1)
+    )
+    vaccination_rate = this_week_vaccinations - last_week_vaccinations
+    st.write("last week", last_week_vaccinations)
+    st.write("this week", this_week_vaccinations)
+    st.write("vaccination rate", vaccination_rate)
 
-        dose1_date = dose2.source.real_date - timedelta(weeks=12)
-        key = dose1_date, dose2.slice.location, dose2.slice.group
-        if key not in dose1s_by_date_slice:
-            new_vaccinated.append(v)
-            continue
-        dose1 = dose1s_by_date_slice[key]
-        new_vaccinated.append(
-            replace(dose2, vaccinated=max(dose2.vaccinated, dose1), extrapolated=True)
+    cumulative_dose_1_vaccinations = next(
+        v.vaccinated
+        for v in vaccinated
+        if v.source.real_date == date_latest and v.slice.dose == Dose.DOSE_1
+    )
+    cumulative_dose_2_vaccinations = next(
+        v.vaccinated
+        for v in vaccinated
+        if v.source.real_date == date_latest and v.slice.dose == Dose.DOSE_2
+    )
+    for day in range(365):
+        current_date = date_latest + timedelta(days=day)
+        new_vaccinations = vaccination_rate / 7
+        dose_2_vaccinations = dose_1_new_vaccinations[current_date - timedelta(weeks=12)]
+        dose_2_vaccinations = min(dose_2_vaccinations, new_vaccinations)
+        cumulative_dose_2_vaccinations += dose_2_vaccinations
+        cumulative_dose_1_vaccinations += new_vaccinations - dose_2_vaccinations
+        dose_1_new_vaccinations[current_date] = new_vaccinations - dose_2_vaccinations
+        yield Vaccinated(
+            source=Source("", current_date, current_date, "weekly"),
+            slice=Slice(dose=Dose.DOSE_1),
+            vaccinated=cumulative_dose_1_vaccinations,
+            extrapolated=True,
         )
-    return new_vaccinated
+        yield Vaccinated(
+            source=Source("", current_date, current_date, "weekly"),
+            slice=Slice(dose=Dose.DOSE_2),
+            vaccinated=cumulative_dose_2_vaccinations,
+            extrapolated=True,
+        )
+
+    yield from vaccinated
 
 
 def add_dose_2_wait(vaccinated: List[Vaccinated]) -> List[Vaccinated]:
@@ -192,7 +203,9 @@ def deaggregate_with_interpolation(
         if v.source.real_date in dates
     ]
 
-    for dim_value in {getattr(v.slice, dim) for v in vaccinated_weekly}:
+    for dim_value in {
+        getattr(v.slice, dim) for v in vaccinated_weekly if v.source.real_date in dates
+    }:
         ratio0 = sum(
             v for d, ddate, v in dim_date_vaccinated if ddate == dates[0] and d == dim_value
         ) / sum(v for _, ddate, v in dim_date_vaccinated if ddate == dates[0])
@@ -200,13 +213,42 @@ def deaggregate_with_interpolation(
             v for d, ddate, v in dim_date_vaccinated if ddate == dates[1] and d == dim_value
         ) / sum(v for _, ddate, v in dim_date_vaccinated if ddate == dates[1])
 
-        ratio_delta_per_day = (ratio1 - ratio0) / (dates[1] - dates[0]).days
-        ratio = ratio0 + ratio_delta_per_day * (aggregate.source.data_date - dates[0]).days
-        if dates[1] < aggregate.source.real_date:
-            ratio = ratio1
+        date_progress = (aggregate.source.data_date - dates[0]).days / (dates[1] - dates[0]).days
+        date_progress = max(0.0, min(1.0, date_progress))
+        ratio = ratio0 + (ratio1 - ratio0) * date_progress
+        new_vaccinated = int(aggregate.vaccinated * ratio)
+        assert new_vaccinated >= 0, (
+            dim,
+            dim_value,
+            ratio,
+            ratio0,
+            ratio1,
+            dates,
+            aggregate.source.real_date,
+        )
         yield Vaccinated(
             source=aggregate.source,
-            vaccinated=int(aggregate.vaccinated * ratio),
+            vaccinated=new_vaccinated,
             slice=replace(aggregate.slice, **{dim: dim_value}),
             interpolated=True,
         )
+
+
+def aggregate_ages(vaccinated: List[Vaccinated]) -> List[Vaccinated]:
+    def key(v: Vaccinated):
+        return str((v.slice.location, v.slice.dose, v.source, v.extrapolated, v.interpolated))
+
+    vaccinated = list(sorted(vaccinated, key=key))
+    vaccinated_grouped_by_age = [list(vs) for _, vs in itertools.groupby(vaccinated, key=key)]
+    aggd = [
+        replace(
+            vs[0],
+            slice=replace(vs[0].slice, group=ALL_AGES),
+            vaccinated=sum(v.vaccinated for v in vs),
+        )
+        for vs in vaccinated_grouped_by_age
+    ]
+    import streamlit as st
+
+    st.write(len(vaccinated), len(aggd))
+    return aggd

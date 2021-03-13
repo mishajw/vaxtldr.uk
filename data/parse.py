@@ -7,7 +7,18 @@ from typing import Iterable
 import numpy as np
 import pandas as pd
 
-from data.types import Source, Vaccinated, Slice, UNDER_80S, OVER_80S, Dose, ALL_LOCATIONS, Location
+from data.types import (
+    Source,
+    Vaccinated,
+    Slice,
+    UNDER_80S,
+    OVER_80S,
+    Dose,
+    ALL_LOCATIONS,
+    Location,
+    Group,
+    ALL_AGES,
+)
 
 
 def parse(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated]:
@@ -127,20 +138,25 @@ def __parse_df_weekly(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated]:
             if "% who have had at least 1 dose" in dose.lower():
                 # Ignore precalculated %
                 continue
+            if type(group) == str and "percent of all" in group.lower():
+                # Ignore percentage reports.
+                continue
+
+            is_dose_and_group_all = dose == "Cumulative Total Doses to Date"
 
             if dose == "1st dose":
                 dose = Dose.DOSE_1
             elif dose == "2nd dose":
                 dose = Dose.DOSE_2
-            elif dose == "Cumulative Total Doses to Date":
+            elif is_dose_and_group_all:
                 dose = Dose.ALL
             else:
                 raise AssertionError(f"Unexpected dose {dose} in source {source}")
 
-            if group == "80+":
-                group = OVER_80S
+            if is_dose_and_group_all:
+                group = ALL_AGES
             else:
-                group = UNDER_80S
+                group = Group.from_csv_str(group)
 
             if location == "Total":
                 location = ALL_LOCATIONS

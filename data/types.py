@@ -1,7 +1,13 @@
+import re
 from dataclasses import dataclass
 from datetime import date
 from enum import Enum
 from typing import Optional
+
+
+AGE_LT = re.compile(r"Under (\d+)")
+AGE_BETWEEN = re.compile(r"(\d+)-(\d+)")
+AGE_GTE = re.compile(r"(\d+)+")
 
 
 @dataclass(frozen=True)
@@ -41,11 +47,32 @@ class Group:
         return self == ALL_AGES
 
     def csv_str(self) -> str:
-        if self == UNDER_80S:
-            return "<80"
-        elif self == OVER_80S:
-            return ">=80"
-        raise AssertionError()
+        if self.age_lower == 0 and self.age_upper is None:
+            return "all"
+        elif self.age_lower == 0:
+            return f"<{self.age_upper}"
+        elif self.age_upper is not None:
+            return f"{self.age_lower}-{self.age_upper}"
+        else:
+            return f">={self.age_lower}"
+
+    def overlaps(self, other: "Group") -> bool:
+        self_upper = self.age_upper if self.age_upper is not None else 10000
+        other_upper = other.age_upper if other.age_upper is not None else 10000
+        return self.age_lower <= other_upper and self_upper >= other.age_lower
+
+    @staticmethod
+    def from_csv_str(s: str) -> "Group":
+        age_lt = AGE_LT.match(s)
+        if age_lt is not None:
+            return Group(0, int(age_lt.group(1)) - 1)
+        age_between = AGE_BETWEEN.match(s)
+        if age_between is not None:
+            return Group(int(age_between.group(1)), int(age_between.group(2)))
+        age_gte = AGE_GTE.match(s)
+        if age_gte is not None:
+            return Group(int(age_gte.group(1)), None)
+        raise AssertionError(f"Could not parse {s} as Group")
 
 
 @dataclass(frozen=True)
@@ -63,6 +90,7 @@ ALL_AGES = Group(0, None)
 UNDER_80S = Group(0, 79)
 OVER_80S = Group(80, None)
 ALL_LOCATIONS = Location(None)
+ALL_DOSES = Dose.ALL
 
 
 @dataclass(frozen=True)
