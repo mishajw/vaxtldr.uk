@@ -8,6 +8,7 @@ from data.types import Group, Vaccinated, ALL_LOCATIONS
 def add_population(df: pd.DataFrame) -> pd.DataFrame:
     population_by_group = __get_population_by_group()
     df["population"] = df["group"].apply(lambda group: population_by_group[group])
+    df["vaccinated"] = df[["population", "vaccinated"]].min(axis=1)
     return df
 
 
