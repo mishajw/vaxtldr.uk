@@ -14,6 +14,7 @@ var DOSE_LABELS = {
     "2": "2nd dose",
     "1": "1st dose",
 };
+var GROUPS = ["<59", "60-64", "65-69", "70-74", "75-79", ">=80"].reverse();
 var GOVERNMENT_TARGET_NUM = 13_900_000;
 var GOVERNMENT_TARGET_PERCENT = GOVERNMENT_TARGET_NUM / (64094000 + 3497000);
 
@@ -33,21 +34,27 @@ function initializeBarCharts(csv) {
         [
             herdImmunityAnnotation("vertical", "x", true),
             governmentTargetAnnotation("vertical", "x", true),
-        ]);
+        ],
+        false /* showGroups */);
     makeBarChart(
         "bar-over-80",
         "Percent of >80s" + SUPERSCRIPT_4 + " vaccinated",
-        csv.filter(function(row) {
-            return row.group == ">=80";
-        }),
-        []);
+        csv,
+        [],
+        true /* showGroups */);
 }
 
-function makeBarChart(id, title, csv, annotations) {
+function makeBarChart(id, title, csv, annotations, showGroups) {
     var vaccinated_per_dose = DOSES.map(function(dose) {
         // TODO: Unnest function.
         var vaccinated = csv
             .filter(function(row) {
+                if (showGroups && GROUPS.indexOf(row.group) === -1) {
+                    return false;
+                }
+                if (!showGroups && row.group !== "all") {
+                    return false;
+                }
                 return row.dose == dose;
             })
             .map(function(row) {
@@ -57,7 +64,11 @@ function makeBarChart(id, title, csv, annotations) {
                     x: (vaccinated / population) * 100,
                     vaccinated: vaccinated,
                     population: population,
+                    group: row.group,
                 };
+            })
+            .sort(function(v1, v2) {
+                return GROUPS.indexOf(v1.group) - GROUPS.indexOf(v2.group);
             });
         return {
             label: DOSE_LABELS[dose],
@@ -68,7 +79,7 @@ function makeBarChart(id, title, csv, annotations) {
     var chart = new Chart(id, {
         type: "horizontalBar",
         data: {
-            labels: [title],
+            labels: showGroups ? GROUPS : [title],
             datasets: vaccinated_per_dose,
         },
         options: {
@@ -88,7 +99,7 @@ function makeBarChart(id, title, csv, annotations) {
                 yAxes: [{
                     stacked: true,
                     ticks: {
-                        display: false
+                        display: showGroups,
                     }
                 }],
                 xAxes: [{
