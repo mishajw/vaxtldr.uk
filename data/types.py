@@ -7,7 +7,7 @@ from typing import Optional
 
 AGE_LT = re.compile(r"Under (\d+)")
 AGE_BETWEEN = re.compile(r"(\d+)-(\d+)")
-AGE_GTE = re.compile(r"(\d+)+")
+AGE_GTE = re.compile(r"(\d+)\+")
 
 
 @dataclass(frozen=True)
