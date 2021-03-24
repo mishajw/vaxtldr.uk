@@ -15,8 +15,8 @@ var DOSE_LABELS = {
     "1": "1st dose",
 };
 var GROUPS = ["<54", "55-59", "60-64", "65-69", "70-74", "75-79", ">=80"].reverse();
-// Source: Figure 3 on https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/populationestimates/bulletins/annualmidyearpopulationestimates/mid2019estimates
-var GOVERNMENT_TARGET_NUM = 21_043_663;
+// Source: Table 2 on https://www.gov.uk/government/publications/uk-covid-19-vaccines-delivery-plan/uk-covid-19-vaccines-delivery-plan
+var GOVERNMENT_TARGET_NUM = 27_000_000;
 var GOVERNMENT_TARGET_PERCENT = GOVERNMENT_TARGET_NUM / 56_286_961;
 
 function start() {
