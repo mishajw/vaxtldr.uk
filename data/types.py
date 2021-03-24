@@ -38,6 +38,7 @@ class Dose(Enum):
             return "all"
 
 
+# TODO: Rename to ages.
 @dataclass(frozen=True)
 class Group:
     age_lower: int
@@ -50,7 +51,7 @@ class Group:
         if self.age_lower == 0 and self.age_upper is None:
             return "all"
         elif self.age_lower == 0:
-            return f"<{self.age_upper}"
+            return f"<={self.age_upper}"
         elif self.age_upper is not None:
             return f"{self.age_lower}-{self.age_upper}"
         else:
