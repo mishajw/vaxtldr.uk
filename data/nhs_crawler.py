@@ -22,8 +22,7 @@ __DAILY_DATES_WITH_2ND_SHEET = {
     date(2021, 1, 14),
     date(2021, 1, 16),
 }
-# TODO: This should probably work for all future weekly dates.
-__WEEKLY_DATES_WITH_3RD_SHEET = {date(2021, 3, 4), date(2021, 3, 11), date(2021, 3, 18)}
+__WEEKLY_DATES_WITH_3RD_SHEET_START = date(2021, 3, 4)
 
 
 def get_data_sources() -> Iterable[Source]:
@@ -62,7 +61,7 @@ def get_sheet(source: Source) -> pd.DataFrame:
     sheet_number = 0
     if source.period == "daily" and source.data_date in __DAILY_DATES_WITH_2ND_SHEET:
         sheet_number = 1
-    elif source.period == "weekly" and source.data_date in __WEEKLY_DATES_WITH_3RD_SHEET:
+    elif source.period == "weekly" and source.data_date >= __WEEKLY_DATES_WITH_3RD_SHEET_START:
         sheet_number = 2
     elif source.period == "weekly":
         sheet_number = 1
