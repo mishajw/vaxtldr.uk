@@ -21,7 +21,8 @@ def get_population(vaccinated: Vaccinated) -> int:
 def __get_population_by_group() -> Dict[Group, int]:
     disjoint_ages = {
         Group(0, 15): 10_816_679,
-        Group(16, 54): 28_334_080,
+        Group(16, 49): 24_426_619,
+        Group(50, 54): 3_907_461,
         Group(55, 59): 3_670_651,
         Group(60, 64): 3_111_835,
         Group(65, 69): 2_796_740,
