@@ -124,7 +124,7 @@ def add_extrapolations(vaccinated: List[Vaccinated]) -> Iterable[Vaccinated]:
     )
     total_population = population.total_population()
     dose_2_vaccinations_required = 0
-    for day in range(365):
+    for day in range(1, 365):
         current_date = date_latest + timedelta(days=day)
         new_vaccinations = int(vaccination_rate / 7)
         dose_2_vaccinations_required += dose_1_new_vaccinations[current_date - timedelta(weeks=12)]
