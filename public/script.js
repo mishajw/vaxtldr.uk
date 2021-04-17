@@ -19,10 +19,12 @@ var GROUPS = ["<=49", "50-54", "55-59", "60-64", "65-69", "70-74", "75-79", ">=8
 var GOVERNMENT_TARGET_NUM = 44_000_000;
 var GOVERNMENT_TARGET_PERCENT = GOVERNMENT_TARGET_NUM / 56_286_961;
 
+var latestData = '';
+
 function start() {
+    setLatestData();
     d3.csv("latest.csv").then(initializeBarCharts);
     d3.csv("line.csv").then(initializeLineCharts);
-    setLatestData();
 }
 
 function initializeBarCharts(csv) {
@@ -173,7 +175,19 @@ function initializeLineCharts(csv) {
                 label: {
                     content: 'Est. ' + new Date(herdImmunityDate).toLocaleDateString(),
                     enabled: true,
-                    xAdjust: 50,
+                }
+            },
+            {
+                mode: "vertical",
+                scaleID: "x",
+                type: "line",
+                display: true,
+                value: latestData,
+                borderColor: "#03a5fc",
+                borderWidth: 2,
+                label: {
+                    content: 'Latest data, ' + new Date(latestData).toLocaleDateString(),
+                    enabled: true,
                 }
             }
         ]);
@@ -261,6 +275,7 @@ function setLatestData() {
         var split = xhttp.responseText.split(" ");
         var runDate = new Date(split[0]);
         var dataDate = new Date(split[1]);
+        latestData = dataDate;
         document.getElementById("freshness").innerHTML =
             "Last updated on " + runDate.toLocaleDateString('en-GB') + ", " +
             " with data from " + dataDate.toLocaleDateString('en-GB') + ".";
