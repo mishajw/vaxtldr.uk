@@ -4,6 +4,7 @@ from dataclasses import replace
 from datetime import date, timedelta
 from typing import Iterable, List
 
+from data import population
 from data.types import Source, Vaccinated, Dose, Slice, ALL_AGES, ALL_LOCATIONS
 
 __SLICE_DIMS = ["dose", "group", "location"]
@@ -121,14 +122,31 @@ def add_extrapolations(vaccinated: List[Vaccinated]) -> Iterable[Vaccinated]:
         for v in vaccinated
         if v.source.real_date == date_latest and v.slice.dose == Dose.DOSE_2
     )
+    total_population = population.total_population()
+    dose_2_vaccinations_required = 0
     for day in range(365):
         current_date = date_latest + timedelta(days=day)
-        new_vaccinations = vaccination_rate / 7
-        dose_2_vaccinations = dose_1_new_vaccinations[current_date - timedelta(weeks=12)]
-        dose_2_vaccinations = min(dose_2_vaccinations, new_vaccinations)
+        new_vaccinations = int(vaccination_rate / 7)
+        dose_2_vaccinations_required += dose_1_new_vaccinations[current_date - timedelta(weeks=12)]
+
+        dose_2_vaccinations = min(max(0, dose_2_vaccinations_required), new_vaccinations)
+        dose_1_vaccinations = new_vaccinations - dose_2_vaccinations
+        dose_1_vaccinations = min(
+            dose_1_vaccinations, total_population - cumulative_dose_1_vaccinations
+        )
+        if dose_1_vaccinations + dose_2_vaccinations < new_vaccinations:
+            dose_2_vaccinations += new_vaccinations - (dose_1_vaccinations + dose_2_vaccinations)
+            dose_2_vaccinations = min(
+                dose_2_vaccinations, total_population - cumulative_dose_2_vaccinations
+            )
+        assert dose_1_vaccinations >= 0
+        assert dose_2_vaccinations >= 0
+
         cumulative_dose_2_vaccinations += dose_2_vaccinations
-        cumulative_dose_1_vaccinations += new_vaccinations - dose_2_vaccinations
-        dose_1_new_vaccinations[current_date] = new_vaccinations - dose_2_vaccinations
+        cumulative_dose_1_vaccinations += dose_1_vaccinations
+        dose_2_vaccinations_required -= dose_2_vaccinations
+
+        dose_1_new_vaccinations[current_date] = dose_1_vaccinations - dose_2_vaccinations
         yield Vaccinated(
             source=Source("", current_date, current_date, "weekly"),
             slice=Slice(dose=Dose.DOSE_1),

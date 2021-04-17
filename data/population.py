@@ -2,7 +2,7 @@ from typing import Dict
 
 import pandas as pd
 
-from data.types import Group, Vaccinated, ALL_LOCATIONS
+from data.types import Group, Vaccinated, ALL_LOCATIONS, ALL_AGES
 
 
 def add_population(df: pd.DataFrame) -> pd.DataFrame:
@@ -15,6 +15,11 @@ def add_population(df: pd.DataFrame) -> pd.DataFrame:
 def get_population(vaccinated: Vaccinated) -> int:
     assert vaccinated.slice.location == ALL_LOCATIONS
     return __get_population_by_group()[vaccinated.slice.group]
+
+
+def total_population() -> int:
+    population_by_group = __get_population_by_group()
+    return population_by_group[ALL_AGES.csv_str()]
 
 
 # Source: https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2021/03/COVID-19-weekly-announced-vaccinations-11-March-2021
