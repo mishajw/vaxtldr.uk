@@ -10,13 +10,13 @@ var DOSE_COLORS = {
     "1": "#CFF4D2",
 };
 var DOSE_LABELS = {
-    "2_wait": "2nd dose + 7d" + SUPERSCRIPT_1,
-    "2": "2nd dose",
-    "1": "1st dose",
+    "2_wait": "Dose 2 +7d" + SUPERSCRIPT_1,
+    "2": "Dose 2",
+    "1": "Dose 1",
 };
 var GROUPS = ["<=49", "50-54", "55-59", "60-64", "65-69", "70-74", "75-79", ">=80"].reverse();
 // Source: Table 2 on https://www.gov.uk/government/publications/uk-covid-19-vaccines-delivery-plan/uk-covid-19-vaccines-delivery-plan
-var GOVERNMENT_TARGET_NUM = 27_000_000;
+var GOVERNMENT_TARGET_NUM = 44_000_000;
 var GOVERNMENT_TARGET_PERCENT = GOVERNMENT_TARGET_NUM / 56_286_961;
 
 function start() {
@@ -144,13 +144,13 @@ function initializeLineCharts(csv) {
         "England vaccinated over time",
         csvNotExtrapolated,
         [
-            governmentTargetAnnotation("horizontal", "y", true),
+            governmentTargetAnnotation("horizontal", "y", false),
             {
                 mode: "vertical",
                 scaleID: "x",
                 type: "line",
                 display: true,
-                value: '2021-04-15',
+                value: '2021-07-31',
                 borderColor: "#D5212E",
                 borderWidth: 2,
             }
@@ -231,7 +231,7 @@ function makeLineChart(id, title, csv, annotations, limit) {
                     id: "x",
                     type: "time",
                     time: {
-                        max: limit ? '2021-04-20' : undefined,
+                        max: limit ? '2021-08-10' : undefined,
                     }
                 }],
                 yAxes: [{
@@ -295,9 +295,9 @@ function herdImmunityAnnotation(mode, scaleId, adjust) {
         borderColor: "#FFD700",
         borderWidth: 2,
         label: {
-            content: "Herd immunity" + SUPERSCRIPT_3,
+            content: "Herd immunity" + SUPERSCRIPT_3 + " (dose 2 +7d)",
             enabled: true,
-            xAdjust: adjust ? 55 : 0,
+            yAdjust: adjust ? -20 : 0,
         }
     };
 }
@@ -312,9 +312,9 @@ function governmentTargetAnnotation(mode, scaleId, adjust) {
         borderColor: "#D5212E",
         borderWidth: 2,
         label: {
-            content: "April 15th target" + SUPERSCRIPT_2,
+            content: "July target" + SUPERSCRIPT_2 + " (dose 1)",
             enabled: true,
-            xAdjust: adjust ? 53 : 0,
+            yAdjust: adjust ? 20 : 0,
         }
     };
 }
