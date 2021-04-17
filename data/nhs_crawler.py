@@ -2,14 +2,17 @@ import re
 import urllib.request
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, List
 
 import pandas as pd
 from bs4 import BeautifulSoup
 
 from data.types import Source
 
-__URL = "https://www.england.nhs.uk/statistics/statistical-work-areas/covid-19-vaccinations/"
+__BASE_URLS = [
+    "https://www.england.nhs.uk/statistics/statistical-work-areas/covid-19-vaccinations/",
+    "https://www.england.nhs.uk/statistics/statistical-work-areas/covid-19-vaccinations/covid-19-vaccinations-archive/",
+]
 __URL_REGEX = re.compile(
     r"https://www.england.nhs.uk/statistics/wp-content/uploads/sites"
     r"/\d/\d{4}/\d{2}/"
@@ -26,12 +29,7 @@ __WEEKLY_DATES_WITH_3RD_SHEET_START = date(2021, 3, 4)
 
 
 def get_data_sources() -> Iterable[Source]:
-    html = urllib.request.urlopen(__URL).read()
-    urls = [
-        tag["href"]
-        for tag in BeautifulSoup(html, "html.parser").find_all()
-        if tag.name == "a" and "announced vaccinations" in tag.text
-    ]
+    urls = [url for base_url in __BASE_URLS for url in __get_sheet_urls(base_url)]
 
     for url in urls:
         match = __URL_REGEX.match(url)
@@ -66,3 +64,12 @@ def get_sheet(source: Source) -> pd.DataFrame:
     elif source.period == "weekly":
         sheet_number = 1
     return pd.read_excel(sheet_data, sheet_name=sheet_number)
+
+
+def __get_sheet_urls(base_url: str) -> List[str]:
+    html = urllib.request.urlopen(base_url).read()
+    return [
+        tag["href"]
+        for tag in BeautifulSoup(html, "html.parser").find_all()
+        if tag.name == "a" and "announced vaccinations" in tag.text
+    ]
