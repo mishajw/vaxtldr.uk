@@ -141,6 +141,9 @@ def __parse_df_weekly(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated]:
             if type(group) == str and "percent of all" in group.lower():
                 # Ignore percentage reports.
                 continue
+            if dose in ["Total 1st Doses", "Total 2nd Doses"]:
+                # Ignore dose summaries.
+                continue
 
             is_dose_and_group_all = dose == "Cumulative Total Doses to Date"
 
