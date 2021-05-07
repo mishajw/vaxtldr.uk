@@ -1,4 +1,5 @@
 import math
+import re
 from collections import defaultdict
 from datetime import date
 from typing import DefaultDict
@@ -55,7 +56,7 @@ def __parse_df_from_2021_01_18(source: Source, df: pd.DataFrame) -> Iterable[Vac
 
     for row in df_iterrows:
         _, (title, *data) = row
-        if type(title) == str and title.lower() == "region of residence":
+        if type(title) == str and re.match("^(nhs )?region of residence$", title.lower()):
             break
 
     for row in df_iterrows:
