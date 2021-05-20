@@ -133,24 +133,28 @@ def __parse_df_weekly(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated]:
             location = a[y, 0]
             vaccinated = a[y, x]
 
-            if "population estimates" in dose.lower():
+            ignore = [
                 # Ignore population estimates.
-                continue
-            if "% who have had at least 1 dose" in dose.lower():
+                "population estimates",
                 # Ignore precalculated %
+                "% who have had at least 1 dose",
+                "% who have had both doses",
+                # Ignore dose summaries.
+                "total 1st doses",
+                "total 2nd doses",
+            ]
+
+            if any(map(lambda d: d in dose.lower(), ignore)):
                 continue
             if type(group) == str and "percent of all" in group.lower():
                 # Ignore percentage reports.
                 continue
-            if dose in ["Total 1st Doses", "Total 2nd Doses"]:
-                # Ignore dose summaries.
-                continue
 
-            is_dose_and_group_all = dose == "Cumulative Total Doses to Date"
+            is_dose_and_group_all = "cumulative total doses to date" in dose.lower()
 
-            if dose == "1st dose":
+            if dose in ["1st dose", "1st dose5"]:
                 dose = Dose.DOSE_1
-            elif dose == "2nd dose":
+            elif dose in ["2nd dose", "2nd dose5"]:
                 dose = Dose.DOSE_2
             elif is_dose_and_group_all:
                 dose = Dose.ALL
