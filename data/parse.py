@@ -66,7 +66,7 @@ def __parse_df_from_2021_01_18(source: Source, df: pd.DataFrame) -> Iterable[Vac
         if location == "Data quality notes:":
             break
         dose_1, dose_2, cumulative = filter(lambda d: not math.isnan(d), data)
-        if location == "Total":
+        if re.match(r"^(Total\d?|England)$", location):
             location = ALL_LOCATIONS
         else:
             location = Location(location)
@@ -166,7 +166,7 @@ def __parse_df_weekly(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated]:
             else:
                 group = Group.from_csv_str(group)
 
-            if location == "Total":
+            if re.match(r"^Total\d?$", location):
                 location = ALL_LOCATIONS
             else:
                 location = Location(location)
