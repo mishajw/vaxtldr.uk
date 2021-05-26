@@ -24,25 +24,23 @@ function start() {
     initializeBarCharts();
 }
 
-function initializeBarCharts() {
-    return d3.csv("latest.csv")
-        .then(csv => {
-            makeBarChart(
-                "bar-all",
-                "Percent of England vaccinated",
-                csv.filter(row => row.group === "all"),
-                [
-                    herdImmunityAnnotation("vertical", "x", true),
-                    governmentTargetAnnotation("vertical", "x", true)
-                ],
-                false /* showGroups */);
-            makeBarChart(
-                "bar-over-80",
-                "Percent of >80s" + SUPERSCRIPT_4 + " vaccinated",
-                csv,
-                [],
-                true /* showGroups */);
-        });
+async function initializeBarCharts() {
+    const csv = await d3.csv("latest.csv");
+    makeBarChart(
+        "bar-all",
+        "Percent of England vaccinated",
+        csv.filter(row => row.group === "all"),
+        [
+            herdImmunityAnnotation("vertical", "x", true),
+            governmentTargetAnnotation("vertical", "x", true)
+        ],
+        false /* showGroups */);
+    makeBarChart(
+        "bar-over-80",
+        "Percent of >80s" + SUPERSCRIPT_4 + " vaccinated",
+        csv,
+        [],
+        true /* showGroups */);
 }
 
 function makeBarChart(id, title, csv, annotations, showGroups) {
@@ -119,65 +117,63 @@ function makeBarChart(id, title, csv, annotations, showGroups) {
     });
 }
 
-function initializeLineCharts(latestDataDate) {
-    return d3.csv("line.csv")
-        .then(csv => {
-            const herdImmunityDate = csv.find(row => {
-                const vaccinated = parseInt(row.vaccinated);
-                const population = parseFloat(row.population);
-                return row.dose !== "2_wait" && (vaccinated / population) > 0.7;
-            }).real_date;
+async function initializeLineCharts(latestDataDate) {
+    const csv = await d3.csv("line.csv")
+    const herdImmunityDate = csv.find(row => {
+        const vaccinated = parseInt(row.vaccinated);
+        const population = parseFloat(row.population);
+        return row.dose !== "2_wait" && (vaccinated / population) > 0.7;
+    }).real_date;
 
-            const csvNotExtrapolated = csv.filter(row => row.extrapolated === "False");
-            makeLineChart(
-                "line",
-                csvNotExtrapolated,
-                [
-                    governmentTargetAnnotation("horizontal", "y", false),
-                    {
-                        mode: "vertical",
-                        scaleID: "x",
-                        type: "line",
-                        display: true,
-                        value: "2021-07-31",
-                        borderColor: "#D5212E",
-                        borderWidth: 2
-                    }
-                ],
-                true);
-            makeLineChart(
-                "line-extrapolated",
-                csv,
-                [
-                    herdImmunityAnnotation("horizontal", "y", false),
-                    {
-                        mode: "vertical",
-                        scaleID: "x",
-                        type: "line",
-                        display: true,
-                        value: herdImmunityDate,
-                        borderColor: "#FFD700",
-                        borderWidth: 2,
-                        label: {
-                            content: "Est. " + new Date(herdImmunityDate).toLocaleDateString(),
-                            enabled: true
-                        }
-                    },
-                    {
-                        mode: "vertical",
-                        scaleID: "x",
-                        type: "line",
-                        display: true,
-                        value: latestDataDate,
-                        borderColor: "#03a5fc",
-                        borderWidth: 2,
-                        label: {
-                            content: "Latest data, " + new Date(latestDataDate).toLocaleDateString(),
-                            enabled: true
-                        }
-                    }
-                ]);
-        });
+    const csvNotExtrapolated = csv.filter(row => row.extrapolated === "False");
+    makeLineChart(
+        "line",
+        csvNotExtrapolated,
+        [
+            governmentTargetAnnotation("horizontal", "y", false),
+            {
+                mode: "vertical",
+                scaleID: "x",
+                type: "line",
+                display: true,
+                value: "2021-07-31",
+                borderColor: "#D5212E",
+                borderWidth: 2
+            }
+        ],
+        true);
+    makeLineChart(
+        "line-extrapolated",
+        csv,
+        [
+            herdImmunityAnnotation("horizontal", "y", false),
+            {
+                mode: "vertical",
+                scaleID: "x",
+                type: "line",
+                display: true,
+                value: herdImmunityDate,
+                borderColor: "#FFD700",
+                borderWidth: 2,
+                label: {
+                    content: "Est. " + new Date(herdImmunityDate).toLocaleDateString(),
+                    enabled: true
+                }
+            },
+            {
+                mode: "vertical",
+                scaleID: "x",
+                type: "line",
+                display: true,
+                value: latestDataDate,
+                borderColor: "#03a5fc",
+                borderWidth: 2,
+                label: {
+                    content: "Latest data, " + new Date(latestDataDate).toLocaleDateString(),
+                    enabled: true
+                }
+            }
+        ]);
 }
 
 function makeLineChart(id, csv, annotations, limit) {
