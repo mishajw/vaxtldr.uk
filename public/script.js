@@ -20,7 +20,7 @@ const GOVERNMENT_TARGET_NUM = 44_000_000;
 const GOVERNMENT_TARGET_PERCENT = GOVERNMENT_TARGET_NUM / 56_286_961;
 
 async function start() {
-    initializeLineCharts(await getLatestDataDate())
+    initializeLineCharts(await getLatestDataDate());
     initializeBarCharts();
 }
 
