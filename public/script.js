@@ -19,8 +19,8 @@ const GROUPS = ["<=39", "40-44", "45-49", "50-54", "55-59", "60-64", "65-69", "7
 const GOVERNMENT_TARGET_NUM = 44_000_000;
 const GOVERNMENT_TARGET_PERCENT = GOVERNMENT_TARGET_NUM / 56_286_961;
 
-function start() {
-    getLatestDataDate().then(initializeLineCharts);
+async function start() {
+    initializeLineCharts(await getLatestDataDate())
     initializeBarCharts();
 }
 
@@ -249,18 +249,16 @@ function makeLineChart(id, csv, annotations, limit) {
 /**
  * @returns Promise<Date>
  */
-function getLatestDataDate() {
-    return fetch("freshness.txt")
-        .then(response => response.text())
-        .then(text => {
-            const [runDate, dataDate] = text
-                .split(" ")
-                .map(dateStr => new Date(dateStr));
-            document.getElementById("freshness").innerHTML =
-                "Last updated on " + runDate.toLocaleDateString("en-GB") + ", " +
-                " with data from " + dataDate.toLocaleDateString("en-GB") + ".";
-            return dataDate;
-        });
+async function getLatestDataDate() {
+    const response = await fetch("freshness.txt");
+    const text = await response.text();
+    const [runDate, dataDate] = text
+        .split(" ")
+        .map(dateStr => new Date(dateStr));
+    document.getElementById("freshness").innerHTML =
+        "Last updated on " + runDate.toLocaleDateString("en-GB") + ", " +
+        " with data from " + dataDate.toLocaleDateString("en-GB") + ".";
+    return dataDate;
 }
 
 function distinct(value, index, self) {
