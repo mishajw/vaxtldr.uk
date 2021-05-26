@@ -1,33 +1,32 @@
-var SUPERSCRIPT_1 = "\u00B9";
-var SUPERSCRIPT_2 = "\u00B2";
-var SUPERSCRIPT_3 = "\u00B3";
-var SUPERSCRIPT_4 = "\u2074";
+const SUPERSCRIPT_1 = "\u00B9";
+const SUPERSCRIPT_2 = "\u00B2";
+const SUPERSCRIPT_3 = "\u00B3";
+const SUPERSCRIPT_4 = "\u2074";
 
-var DOSES = ["2_wait", "2", "1"];
-var DOSE_COLORS = {
+const DOSES = ["2_wait", "2", "1"];
+const DOSE_COLORS = {
     "2_wait": "#205072",
     "2": "#56C596",
     "1": "#CFF4D2",
 };
-var DOSE_LABELS = {
+const DOSE_LABELS = {
     "2_wait": "Dose 2 +7d" + SUPERSCRIPT_1,
     "2": "Dose 2",
     "1": "Dose 1",
 };
-var GROUPS = ["<=39", "40-44", "45-49", "50-54", "55-59", "60-64", "65-69", "70-74", "75-79", ">=80"].reverse();
+const GROUPS = ["<=39", "40-44", "45-49", "50-54", "55-59", "60-64", "65-69", "70-74", "75-79", ">=80"].reverse();
 // Source: Table 2 on https://www.gov.uk/government/publications/uk-covid-19-vaccines-delivery-plan/uk-covid-19-vaccines-delivery-plan
-var GOVERNMENT_TARGET_NUM = 44_000_000;
-var GOVERNMENT_TARGET_PERCENT = GOVERNMENT_TARGET_NUM / 56_286_961;
+const GOVERNMENT_TARGET_NUM = 44_000_000;
+const GOVERNMENT_TARGET_PERCENT = GOVERNMENT_TARGET_NUM / 56_286_961;
 
-var latestData = '';
-
-function start() {
-    setLatestData();
-    d3.csv("latest.csv").then(initializeBarCharts);
-    d3.csv("line.csv").then(initializeLineCharts);
+async function start() {
+    let latestDataDate = await getLatestDataDate();
+    await initializeBarCharts();
+    await initializeLineCharts(latestDataDate);
 }
 
-function initializeBarCharts(csv) {
+async function initializeBarCharts() {
+    let csv = await d3.csv("latest.csv");
     makeBarChart(
         "bar-all",
         "Percent of England vaccinated",
@@ -48,9 +47,9 @@ function initializeBarCharts(csv) {
 }
 
 function makeBarChart(id, title, csv, annotations, showGroups) {
-    var vaccinated_per_dose = DOSES.map(function(dose) {
+    let vaccinated_per_dose = DOSES.map(function(dose) {
         // TODO: Unnest function.
-        var vaccinated = csv
+        let vaccinated = csv
             .filter(function(row) {
                 if (showGroups && GROUPS.indexOf(row.group) === -1) {
                     return false;
@@ -61,8 +60,8 @@ function makeBarChart(id, title, csv, annotations, showGroups) {
                 return row.dose == dose;
             })
             .map(function(row) {
-                var vaccinated = parseInt(row.vaccinated);
-                var population = parseFloat(row.population);
+                let vaccinated = parseInt(row.vaccinated);
+                let population = parseFloat(row.population);
                 return {
                     x: (vaccinated / population) * 100,
                     vaccinated: vaccinated,
@@ -79,7 +78,7 @@ function makeBarChart(id, title, csv, annotations, showGroups) {
             data: vaccinated,
         };
     });
-    var chart = new Chart(id, {
+    new Chart(id, {
         type: "horizontalBar",
         data: {
             labels: showGroups ? GROUPS : [title],
@@ -89,12 +88,12 @@ function makeBarChart(id, title, csv, annotations, showGroups) {
             tooltips: {
                 callbacks: {
                     label: function(tooltipItem, data) {
-                        var dataset = data.datasets[tooltipItem.datasetIndex]
-                        var data = dataset.data[tooltipItem.index];
+                        let dataset = data.datasets[tooltipItem.datasetIndex]
+                        let datasetData = dataset.data[tooltipItem.index];
                         return dataset.label + ": " +
-                            data.x.toFixed(2) + "%" +
-                            " (" + formatPopulation(data.vaccinated) +
-                            " of " + formatPopulation(data.population) + ")";
+                            datasetData.x.toFixed(2) + "%" +
+                            " (" + formatPopulation(datasetData.vaccinated) +
+                            " of " + formatPopulation(datasetData.population) + ")";
                     }
                 }
             },
@@ -125,25 +124,25 @@ function makeBarChart(id, title, csv, annotations, showGroups) {
     });
 }
 
-function initializeLineCharts(csv) {
-    var herdImmunityDate = '';
+async function initializeLineCharts(latestDataDate) {
+    let csv = await d3.csv("line.csv");
+    let herdImmunityDate = '';
     csv.forEach(function(row) {
         if (herdImmunityDate != '' || row.dose != "2_wait") {
             return;
         }
-        var vaccinated = parseInt(row.vaccinated);
-        var population = parseFloat(row.population);
+        let vaccinated = parseInt(row.vaccinated);
+        let population = parseFloat(row.population);
         if ((vaccinated / population) > 0.7) {
             herdImmunityDate = row.real_date;
         }
     });
 
-    var csvNotExtrapolated = csv.filter(function(row) {
+    let csvNotExtrapolated = csv.filter(function(row) {
         return row.extrapolated == "False";
     });
     makeLineChart(
         "line",
-        "England vaccinated over time",
         csvNotExtrapolated,
         [
             governmentTargetAnnotation("horizontal", "y", false),
@@ -160,7 +159,6 @@ function initializeLineCharts(csv) {
         true);
     makeLineChart(
         "line-extrapolated",
-        "Predicting England vaccinations",
         csv,
         [
             herdImmunityAnnotation("horizontal", "y", false),
@@ -182,31 +180,31 @@ function initializeLineCharts(csv) {
                 scaleID: "x",
                 type: "line",
                 display: true,
-                value: latestData,
+                value: latestDataDate,
                 borderColor: "#03a5fc",
                 borderWidth: 2,
                 label: {
-                    content: 'Latest data, ' + new Date(latestData).toLocaleDateString(),
+                    content: 'Latest data, ' + new Date(latestDataDate).toLocaleDateString(),
                     enabled: true,
                 }
             }
         ]);
 }
 
-function makeLineChart(id, title, csv, annotations, limit) {
-    var dates = csv
+function makeLineChart(id, csv, annotations, limit) {
+    let dates = csv
         .map(function(row) {
             return row.real_date;
         })
         .filter(distinct);
-    var datasets = DOSES.map(function(dose) {
-        var vaccinated = csv
+    let datasets = DOSES.map(function(dose) {
+        let vaccinated = csv
             .filter(function(row) {
                 return row.dose == dose;
             })
             .map(function(row) {
-                var vaccinated = parseInt(row.vaccinated);
-                var population = parseFloat(row.population);
+                let vaccinated = parseInt(row.vaccinated);
+                let population = parseFloat(row.population);
                 return {
                     x: row.real_date,
                     y: (vaccinated / population) * 100,
@@ -221,7 +219,7 @@ function makeLineChart(id, title, csv, annotations, limit) {
         };
     });
 
-    var chart = new Chart(id, {
+    new Chart(id, {
         type: "line",
         data: {
             labels: dates,
@@ -231,12 +229,12 @@ function makeLineChart(id, title, csv, annotations, limit) {
             tooltips: {
                 callbacks: {
                     label: function(tooltipItem, data) {
-                        var dataset = data.datasets[tooltipItem.datasetIndex]
-                        var data = dataset.data[tooltipItem.index];
+                        let dataset = data.datasets[tooltipItem.datasetIndex]
+                        let datasetData = dataset.data[tooltipItem.index];
                         return dataset.label + ": " +
-                            data.y.toFixed(2) + "%" +
-                            " (" + formatPopulation(data.vaccinated) +
-                            " of " + formatPopulation(data.population) + ")";
+                            datasetData.y.toFixed(2) + "%" +
+                            " (" + formatPopulation(datasetData.vaccinated) +
+                            " of " + formatPopulation(datasetData.population) + ")";
                     }
                 }
             },
@@ -266,22 +264,19 @@ function makeLineChart(id, title, csv, annotations, limit) {
     });
 }
 
-function setLatestData() {
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState != 4 || this.status != 200) {
-            return;
-        }
-        var split = xhttp.responseText.split(" ");
-        var runDate = new Date(split[0]);
-        var dataDate = new Date(split[1]);
-        latestData = dataDate;
-        document.getElementById("freshness").innerHTML =
-            "Last updated on " + runDate.toLocaleDateString('en-GB') + ", " +
-            " with data from " + dataDate.toLocaleDateString('en-GB') + ".";
-    };
-    xhttp.open("GET", "freshness.txt", true);
-    xhttp.send();
+/**
+ * @returns Promise<Date>
+ */
+async function getLatestDataDate() {
+    let response = await fetch("freshness.txt");
+    let text = await response.text();
+    let split = text.split(" ");
+    let runDate = new Date(split[0]);
+    let dataDate = new Date(split[1]);
+    document.getElementById("freshness").innerHTML =
+        "Last updated on " + runDate.toLocaleDateString('en-GB') + ", " +
+        " with data from " + dataDate.toLocaleDateString('en-GB') + ".";
+    return dataDate;
 }
 
 function distinct(value, index, self) {
