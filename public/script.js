@@ -120,9 +120,12 @@ function makeBarChart(id, title, csv, annotations, showGroups) {
 async function initializeLineCharts(latestDataDate) {
     const csv = await d3.csv("line.csv")
     const herdImmunityDate = csv.find(row => {
+        if (row.dose !== "2_wait") {
+            return false;
+        }
         const vaccinated = parseInt(row.vaccinated);
         const population = parseFloat(row.population);
-        return row.dose !== "2_wait" && (vaccinated / population) > 0.7;
+        return (vaccinated / population) > 0.7;
     }).real_date;
 
     const csvNotExtrapolated = csv.filter(row => row.extrapolated === "False");
