@@ -56,7 +56,7 @@ def __parse_df_from_2021_01_18(source: Source, df: pd.DataFrame) -> Iterable[Vac
 
     for row in df_iterrows:
         _, (title, *data) = row
-        if type(title) == str and re.match("^(nhs )?region of residence$", title.lower()):
+        if type(title) == str and re.match(r"^(nhs )?region of residence([0-9]+)?$", title.lower()):
             break
 
     for row in df_iterrows:
@@ -66,7 +66,7 @@ def __parse_df_from_2021_01_18(source: Source, df: pd.DataFrame) -> Iterable[Vac
         if location == "Data quality notes:":
             break
         dose_1, dose_2, cumulative = filter(lambda d: not math.isnan(d), data)
-        if re.match(r"^(Total\d?|England)$", location):
+        if re.match(r"^(Total\d?|England)([0-9]+)?$", location):
             location = ALL_LOCATIONS
         else:
             location = Location(location)
