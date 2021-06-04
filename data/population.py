@@ -26,7 +26,9 @@ def total_population() -> int:
 def __get_population_by_group() -> Dict[Group, int]:
     disjoint_ages = {
         Group(0, 15): 10_816_679,
-        Group(16, 39): 17_296_510,
+        Group(16, 29): 10_910_865,
+        Group(30, 34): 4_709_736,
+        Group(35, 39): 4_483_905,
         Group(40, 44): 3_414_297,
         Group(45, 49): 3_715_812,
         Group(50, 54): 3_907_461,
