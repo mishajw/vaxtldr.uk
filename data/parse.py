@@ -23,6 +23,7 @@ from data.types import (
 
 
 def parse(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated]:
+    print(f"Parsing {source.url}")
     # Data overrides. Some data formats are only used once, and not worth writing parsers for.
     if source.data_date == date(2021, 1, 7) and source.period == "weekly":
         return [
@@ -93,9 +94,7 @@ def __parse_df_earliest(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated
 
 def __parse_df_weekly(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated]:
     def is_start(cell) -> bool:
-        return type(cell) == str and (
-            cell.lower() == "region of residence" or cell.lower() == "nhs region of residence"
-        )
+        return type(cell) == str and re.match("(nhs )?region of residence( name)?", cell.lower())
 
     def is_end(cell) -> bool:
         return type(cell) == str and cell.lower() == "data quality notes:"
@@ -123,6 +122,11 @@ def __parse_df_weekly(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated]:
             current_dose = population
         filled_in_doses.append(current_dose)
     a[0, 1:] = filled_in_doses
+
+    if source.data_date >= date(2021, 7, 1):
+        # In these sheets the "Total" name comes under the NHS region code, which we don't include.
+        # This hack makes it a lot easier to parse these sheets.
+        a[2][0] = "Total"
 
     vaccinated_by_slice: DefaultDict[Slice, int] = defaultdict(int)
 

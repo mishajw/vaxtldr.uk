@@ -25,8 +25,8 @@ def total_population() -> int:
 # Source: https://www.england.nhs.uk/statistics/wp-content/uploads/sites/2/2021/03/COVID-19-weekly-announced-vaccinations-11-March-2021
 def __get_population_by_group() -> Dict[Group, int]:
     disjoint_ages = {
-        Group(0, 15): 10_816_679,
-        Group(16, 24): 5_953_505,
+        Group(0, 17): 12_023_568,
+        Group(18, 24): 4_746_616,
         Group(25, 29): 3_801_409,
         Group(30, 34): 3_807_954,
         Group(35, 39): 3_733_642,

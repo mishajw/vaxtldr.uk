@@ -14,7 +14,7 @@ const DOSE_LABELS = {
     "2": "Dose 2",
     "1": "Dose 1",
 };
-const GROUPS = ["<=24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59", "60-64", "65-69", "70-74", "75-79", ">=80"].reverse();
+const GROUPS = ["18-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59", "60-64", "65-69", "70-74", "75-79", ">=80"].reverse();
 // Source: Table 2 on https://www.gov.uk/government/publications/uk-covid-19-vaccines-delivery-plan/uk-covid-19-vaccines-delivery-plan
 const GOVERNMENT_TARGET_NUM = 44_000_000;
 const GOVERNMENT_TARGET_PERCENT = GOVERNMENT_TARGET_NUM / 56_286_961;
