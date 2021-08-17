@@ -52,7 +52,7 @@ def parse(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated]:
 
 
 def __parse_df_from_2021_01_18(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated]:
-    df = df.drop("Unnamed: 0", axis=1)
+    df = df.iloc[: , 1:]
     df_iterrows = df.iterrows()
 
     for row in df_iterrows:
@@ -158,7 +158,7 @@ def __parse_df_weekly(source: Source, df: pd.DataFrame) -> Iterable[Vaccinated]:
 
             if dose in ["1st dose", "1st dose5"]:
                 dose = Dose.DOSE_1
-            elif dose in ["2nd dose", "2nd dose5"]:
+            elif dose in ["2nd dose", "2nd dose5", "2nd dose5,7"]:
                 dose = Dose.DOSE_2
             elif is_dose_and_group_all:
                 dose = Dose.ALL
